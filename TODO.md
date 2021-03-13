@@ -1,16 +1,5 @@
 # TODO
 
-## Caching System
-Extract the turn cache into a separate module for re-use.  I want to use it for the
-With Memory plugin too.
-
-- Needs some flexibility from *when* it will pull data from the cache.
-  - Exact turn/current turn.
-  - Cache closest to nearest turn (before current turn).
-  - Latest item in the cache.
-
-Use with Lodash `get` and `set`?
-
 ## With Memory
 Currently, State Engine adds the player memory to the `AIDData` object itself.  Pull
 this out and add to it summary extraction and caching.  Allow the player memory to

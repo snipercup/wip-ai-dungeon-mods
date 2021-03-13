@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "bundle": "aid-bundler ./src/index.js"
+  },
+  "dependencies": {
+    "aid-bundler": "git://github.com/TaleirOfDeynai/aid-bundler.git"
+  }
+}

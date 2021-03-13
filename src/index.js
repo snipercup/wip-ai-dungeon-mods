@@ -1,5 +1,5 @@
 const { Pipeline } = require("aid-bundler");
-const commands = require("./commands");
+const { SimpleCommand } = require("./commands");
 const withMemory = require("./with-memory");
 const stateEngine = require("./state-engine");
 const deepState = require("./deep-state");
@@ -8,16 +8,12 @@ const annotatedMode = require("./annotated-context-mode");
 
 const pipeline = new Pipeline();
 
-commands.addPlugin(pipeline,
-  withMemory.commands,
-  stateEngine.commands,
-  contextMode.commands,
-  {
-    "report-game-info": (data) => {
-      console.log(data.info);
-      return "Game info dumped to logs.";
-    }
-  }
+pipeline.commandHandler.addCommand(new SimpleCommand(
+  "report-game-info",
+  (data) => {
+    console.log(data.info);
+    return "Game info dumped to logs.";
+  })
 );
 
 withMemory.addPlugin(pipeline);

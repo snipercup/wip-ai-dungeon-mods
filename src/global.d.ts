@@ -118,10 +118,22 @@ type MaybeArray<T> = T | T[];
 
 declare module "aid-bundler/src/aidData" {
   class AIDData {
-    constructor (text: string, state: GameState, info: GameInfo, worldEntries: Readonly<WorldInfoEntry>[], history: Readonly<HistoryEntry>[]): AIDData;
+    constructor (text: string, state: GameState, info: GameInfo, worldEntries: Readonly<WorldInfoEntry>[], history: Readonly<HistoryEntry>[], memory: string): AIDData;
 
     /** The current text; mutable and shared by all modifiers. */
     text: string;
+
+    /** The original text, provided by the system. */
+    readonly givenText: string;
+
+    /**
+     * The player memory.  Can be altered by other plugins, but assignments to this
+     * property cannot actually change what is shown in the player's "Pin".
+     */
+    playerMemory: string;
+
+    /** The original player memory, unalterable by other plugins. */
+    readonly givenPlayerMemory: string;
 
     /** The game's mutable state object. */
     state: GameState;

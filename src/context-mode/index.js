@@ -1,7 +1,7 @@
 /// <reference path="./context-mode.d.ts" />
 /// <reference path="../commands/commands.d.ts" />
 const { Plugin } = require("aid-bundler");
-const { parseArgs } = require("../commands/utils");
+const { SimpleCommand } = require("../commands");
 
 /** @type {Map<string, ContextModeModule>} */
 const registeredModules = new Map();
@@ -19,12 +19,11 @@ module.exports.makeModifier = (modifierKey) => (data) => {
   theModule?.[modifierKey]?.(data);
 };
 
-/** @type {CommandMap} */
-module.exports.commands = {
-  "context-mode": (data, arg) => {
+module.exports.commands = [
+  new SimpleCommand("context-mode", (data, args) => {
     data.text = "";
 
-    const [newMode] = parseArgs(arg);
+    const [newMode] = args;
     if (!newMode)
       return "A single argument is required.";
 
@@ -38,8 +37,8 @@ module.exports.commands = {
 
     data.state.$$contextMode = fixedName;
     return `Set context mode to: ${newMode}`;
-  }
-};
+  })
+];
 
 /**
  * Creates and adds this plugin to an AID-Bundler `Pipeline`.
@@ -63,6 +62,9 @@ module.exports.addPlugin = (pipeline, ...contextModeModules) => {
 
     registeredModules.set(fixedName, module);
   }
+
+  for (const cmd of module.exports.commands)
+    pipeline.commandHandler.addCommand(cmd);
 
   pipeline.addPlugin(new Plugin("Context-Mode",
     module.exports.makeModifier("input"),

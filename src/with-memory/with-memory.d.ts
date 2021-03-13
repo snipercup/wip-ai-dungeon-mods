@@ -1,10 +1,7 @@
 declare module "aid-bundler/src/aidData" {
   interface AIDData {
-    /** The player-set memory. */
-    readonly playerMemory: string;
-
     /** The current AI-generated summary. */
-    readonly summary: string;
+    summary: string;
   }
 }
 

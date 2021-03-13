@@ -1,9 +1,10 @@
 /// <reference path="./with-memory.d.ts" />
 const { Plugin } = require("aid-bundler");
+const { SimpleCommand } = require("../commands");
 const turnCache = require("../turn-cache");
 
 /**
- * With Memory
+ * With-Memory
  * Extracts and tracks the adventure summary and adds `memory` and `summary`
  * properties to the `AIDData` instance for use by other plugins.  Should be
  * installed as early as possible in the pipeline, typically after the commands.
@@ -32,11 +33,11 @@ const reStorySoFar = /^The story so far:\s+((?:.|\s)*?)$/i;
  * @prop {string} playerMemory
  * @prop {string} summary
  * 
+ * @param {import("aid-bundler/src/aidData").AIDData} data
  * @returns {Extraction}
  */
-const extractMemory = () => {
-  // @ts-ignore - Property `memory` exists, just isn't typed.
-  const memoryParts = globalThis.memory.split("\n");
+const extractMemory = (data) => {
+  const memoryParts = data.givenPlayerMemory.split("\n");
   const memoryOut = [];
   let afterHash = false;
   let summaryOut = [];
@@ -61,14 +62,14 @@ const extractMemory = () => {
 };
 
 /**
- * Constructs an input modifier for the plugin.
+ * The input modifier for the plugin.  Handles the cache updates.
  * 
- * @returns {BundledModifierFn}
+ * @type {BundledModifierFn}
  */
- module.exports.inputModifier = () => (data) => {
+ module.exports.inputModifier = (data) => {
   if (!data.useAI) return;
 
-  const { playerMemory, summary: newSummary } = extractMemory();
+  const { playerMemory, summary: newSummary } = extractMemory(data);
   /** @type {import("../turn-cache").UpdateCache<string>} */
   const theCache = turnCache.forUpdate(data, "WithMemory.summary", { loose: true });
   if (newSummary) {
@@ -85,16 +86,30 @@ const extractMemory = () => {
   }
   
   const summary = theCache.storage ? `The story so far: ${theCache.storage}` : "";
-  console.log(summary);
+  Object.assign(data, { playerMemory, summary });
+};
+
+/**
+ * The context (and output) modifier of the plugin.  Only sets the props on the
+ * `AIDData` instance; does not alter the cache.
+ * 
+ * @type {BundledModifierFn}
+ */
+module.exports.contextModifier = (data) => {
+  if (!data.useAI) return;
+
+  const { playerMemory } = extractMemory(data);
+  /** @type {import("../turn-cache").ReadCache<string>} */
+  const theCache = turnCache.forRead(data, "WithMemory.summary", { loose: true });
+  const summary = theCache.storage ? `The story so far: ${theCache.storage}` : "";
   Object.assign(data, { playerMemory, summary });
 };
 
 const isYes = ["on", "1", "true", "yes"];
 const isNo = ["off", "0", "false", "no"];
 
-/** @type {CommandMap} */
-module.exports.commands = {
-  "report-summary-updates": (data, arg) => {
+module.exports.commands = [
+  new SimpleCommand("report-summary-updates", (data, [arg]) => {
     if (!arg) {
       const currentState = data.state.$$reportSummary ? "reporting" : "not reporting";
       return `Currently ${currentState} summary updates.  Repeat the command with "on" or "off" to change.`
@@ -112,19 +127,19 @@ module.exports.commands = {
       "Didn't understand; repeat the command.",
       "Do you want me to report summary updates (on) or not (off)?"
     ].join("\n");
-  },
-  "report-summary": (data) => {
+  }),
+  new SimpleCommand("report-summary", (data) => {
     /** @type {import("../turn-cache").ReadCache<string>} */
     const theCache = turnCache.forRead(data, "WithMemory.summary", { loose: true });
     if (theCache.storage) return `The story so far: ${theCache.storage}`;
     return "(No summary has yet been recorded yet.)";
-  },
-  "reset-with-memory": (data) => {
+  }),
+  new SimpleCommand("reset-with-memory", (data) => {
     delete data.state.$$latestSummary;
     turnCache.clearCache(data, "WithMemory.summary");
     return "Cleared With-Memory caches.";
-  }
-};
+  })
+];
 
 /**
  * Creates and adds this plugin to an AID-Bundler `Pipeline`.
@@ -132,7 +147,13 @@ module.exports.commands = {
  * @param {import("aid-bundler").Pipeline} pipeline
  */
 module.exports.addPlugin = (pipeline) => {
+  for (const cmd of module.exports.commands)
+    pipeline.commandHandler.addCommand(cmd);
+
   pipeline.addPlugin(new Plugin("With-Memory",
-    module.exports.inputModifier()
+    module.exports.inputModifier,
+    // This is used for both.
+    module.exports.contextModifier,
+    module.exports.contextModifier
   ));
 };

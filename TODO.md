@@ -14,5 +14,9 @@ these tiny functions into their own modules, which will make maintenance a littl
 easier, as we don't have to scroll around as much.
 
 ## Dynamic Author
+Uses `$Style` and `$Theme` states to help guide the AI's writing.
 
 ## Forced Actions
+A system of automatically setting the `frontMemory` based on a system of cooldowns
+and keyword matching.  They essentially forcibly inject text in front of the
+player's text to covertly influence the AI.

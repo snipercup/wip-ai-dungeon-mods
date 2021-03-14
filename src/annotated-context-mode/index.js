@@ -9,6 +9,7 @@ const STYLE = "Style:";
 const NOTES = "Notes:";
 const SUMMARY = "Summary:";
 const STORY = "Story:";
+const EXCERPT = "Excerpt:";
 
 const reStorySoFar = /^The story so far:\s+((?:.|\s)*?)$/i;
 
@@ -153,6 +154,8 @@ const contextModifier = (data) => {
   const notesLength = joinedLength(notesText);
 
   const storyText = dew(() => {
+    // Swap the text if the summary is included.
+    const tagText = usedLength(summaryLength) > 0 ? EXCERPT : STORY;
     const theFrontMemory = frontMemory?.trim();
     return chain(theFrontMemory ? [theFrontMemory] : [])
       .concat(iterReverse(history))
@@ -161,12 +164,12 @@ const contextModifier = (data) => {
       .thru((storyText) => limitText(
         // Have to account for the new lines...
         // @ts-ignore - Not typing the `reduce` correctly.
-        maxChars - [styleLength, summaryLength, notesLength, STORY].reduce(sumOfUsed, 0),
+        maxChars - [styleLength, summaryLength, notesLength, tagText].reduce(sumOfUsed, 0),
         storyText,
         // And here we account for the new line separating each line of the story.
         (text) => text ? text.length + 1 : 0
       ))
-      .thru((storyText) => [STORY, ...iterReverse(storyText)])
+      .thru((storyText) => [tagText, ...iterReverse(storyText)])
       .value();
   });
 

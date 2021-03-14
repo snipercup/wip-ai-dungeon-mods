@@ -68,6 +68,7 @@ const extractMemory = (data) => {
  */
  module.exports.inputModifier = (data) => {
   if (!data.useAI) return;
+  delete data.state.$$reportSummaryInOutputModifier;
 
   const { playerMemory, summary: newSummary } = extractMemory(data);
   /** @type {import("../turn-cache").UpdateCache<string>} */
@@ -80,8 +81,8 @@ const extractMemory = (data) => {
       theCache.commit();
 
       data.state.$$latestSummary = newSummary;
-      if (!data.message && $$reportSummary)
-        data.message = `The story so far: ${newSummary}`;
+      if ($$reportSummary)
+        data.state.$$reportSummaryInOutputModifier = true;
     }
   }
   
@@ -103,6 +104,24 @@ module.exports.contextModifier = (data) => {
   const theCache = turnCache.forRead(data, "WithMemory.summary", { loose: true });
   const summary = theCache.storage ? `The story so far: ${theCache.storage}` : "";
   Object.assign(data, { playerMemory, summary });
+};
+
+/**
+ * The output modifier of the plugin.  Only sets the props on the `AIDData`
+ * instance; does not alter the cache.  Also handles setting the `state.message`
+ * when a summary update was detected in the input modifier.
+ * 
+ * @type {BundledModifierFn}
+ */
+module.exports.outputModifier = (data) => {
+  if (!data.useAI) return;
+  module.exports.contextModifier(data);
+
+  const { $$reportSummaryInOutputModifier, $$latestSummary } = data.state;
+  if ($$reportSummaryInOutputModifier && !data.message)
+    data.message = `The story so far: ${$$latestSummary}`;
+
+  delete data.state.$$reportSummaryInOutputModifier;
 };
 
 const isYes = ["on", "1", "true", "yes"];

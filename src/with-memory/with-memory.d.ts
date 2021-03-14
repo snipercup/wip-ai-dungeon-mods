@@ -11,7 +11,15 @@ declare interface GameState {
    * more easily proof-read or validate the reasonability of a summary when one
    * is produced.
    */
-   $$reportSummary?: boolean;
+  $$reportSummary?: boolean;
+
+  /**
+   * Set when a summary change is detected in the input modifier.  Since AID-Bundler
+   * nukes the `message` at every step of the modifier sequence, this property
+   * tells the output modifier to set a message to display the `$$latestSummary`
+   * to the player.
+   */
+  $$reportSummaryInOutputModifier?: boolean;
 
   /**
    * The latest summary from a detected update.

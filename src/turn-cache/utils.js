@@ -72,7 +72,7 @@ module.exports.cleanCache = (localStorage, actionCount, storageSize) => {
     .map(Number)
     .filter((v) => !Number.isNaN(v))
     .filter((n) => n <= actionCount)
-    .sort((a, b) => b - a)
+    .sort((a, b) => a - b)
     .map((n) => tuple2(n, localStorage[n]))
     .filter(([, storage]) => storage != null)
     .slice(-1 * storageSize);

@@ -1,11 +1,5 @@
 # TODO
 
-## With Memory
-Currently, State Engine adds the player memory to the `AIDData` object itself.  Pull
-this out and add to it summary extraction and caching.  Allow the player memory to
-be mutable (though it will neccessarily reset each turn).  It's just to aid processing
-later on.
-
 ## Summarine
 Creates a World Info entry that tracks the relevant Adventure Summary.  Places it
 into a `$Summary` State Engine entry so it can be used with Context-Mode more easily.

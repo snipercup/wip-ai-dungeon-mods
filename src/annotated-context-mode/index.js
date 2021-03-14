@@ -137,6 +137,7 @@ const contextModifier = (data) => {
       .map((text) => `• ${text}`)
       .thru((sortedNotes) => limitText(
         // Have to account for the new lines for `styleLines` and `NOTES`.
+        // @ts-ignore - Not typing the `reduce` correctly.
         MAX_MEMORY - [styleLength, NOTES].reduce(sumOfUsed, 0),
         sortedNotes,
         // And here we account for the new line separating each note.
@@ -159,6 +160,7 @@ const contextModifier = (data) => {
       .map((s) => s.trim())
       .thru((storyText) => limitText(
         // Have to account for the new lines...
+        // @ts-ignore - Not typing the `reduce` correctly.
         maxChars - [styleLength, summaryLength, notesLength, STORY].reduce(sumOfUsed, 0),
         storyText,
         // And here we account for the new line separating each line of the story.

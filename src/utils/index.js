@@ -283,6 +283,7 @@ module.exports.chain = module.exports.dew(() => {
     /** @type {ChainComposition<any>} */
     const result = {
       map: (transformFn) => chain(mapIter(iterable, transformFn)),
+      // @ts-ignore - Fitting an overloaded method; TS can't handle it.
       filter: (predicateFn) => chain(filterIter(iterable, predicateFn)),
       concat: (...others) => chain(concat(iterable, ...others)),
       thru: (transformFn) => chain(transformFn(iterable)),

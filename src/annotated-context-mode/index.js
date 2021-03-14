@@ -7,7 +7,10 @@ const { getClosestCache, getStateEngineData } = require("../context-mode/utils")
 const MAX_MEMORY = 1000;
 const STYLE = "Style:";
 const NOTES = "Notes:";
+const SUMMARY = "Summary:";
 const STORY = "Story:";
+
+const reStorySoFar = /^The story so far:\s+((?:.|\s)*?)$/i;
 
 /**
  * Sorts by: `priority` descending then `score` descending.  This means things with
@@ -52,6 +55,9 @@ const usedLength = (value) => {
   return length > 0 ? length + 1 : 0;
 };
 
+/** @type {(a: number, n: string | number) => number} */
+const sumOfUsed = (a, n) => a + usedLength(n);
+
 /**
  * Gets the length of a string, joined with `\n` characters.
  * 
@@ -75,18 +81,30 @@ const contextModifier = (data) => {
   // Only begin working after the second turn.
   if (data.actionCount <= 2) return;
 
-  const { state, info, history, playerMemory } = data;
+  const { state, info, history, playerMemory, summary } = data;
   const { authorsNote, frontMemory } = state.memory;
   const { maxChars } = info;
 
   const styleText = dew(() => {
     if (!authorsNote) return [];
-    const theTheme = cleanText(authorsNote);
-    if (theTheme.length === 0) return [];
-    return [STYLE, ...theTheme];
+    const theStyle = cleanText(authorsNote);
+    if (theStyle.length === 0) return [];
+    return [STYLE, ...theStyle];
   });
 
   const styleLength = joinedLength(styleText);
+
+  // The summary is counted as a part of the story text instead of the memory.
+  const summaryText = dew(() => {
+    if (!summary) return [];
+    const [, fixedSummary] = reStorySoFar.exec(summary) ?? [];
+    if (!fixedSummary) return [];
+    const theSummary = cleanText(fixedSummary);
+    if (theSummary.length === 0) return [];
+    return [SUMMARY, ...theSummary];
+  });
+
+  const summaryLength = joinedLength(summaryText);
 
   // We require State Engine to function, but can still style a few things.
   const cacheData = getClosestCache(data);
@@ -119,7 +137,7 @@ const contextModifier = (data) => {
       .map((text) => `• ${text}`)
       .thru((sortedNotes) => limitText(
         // Have to account for the new lines for `styleLines` and `NOTES`.
-        MAX_MEMORY - usedLength(styleLength) - usedLength(NOTES),
+        MAX_MEMORY - [styleLength, NOTES].reduce(sumOfUsed, 0),
         sortedNotes,
         // And here we account for the new line separating each note.
         (text) => text.length + 1
@@ -141,7 +159,7 @@ const contextModifier = (data) => {
       .map((s) => s.trim())
       .thru((storyText) => limitText(
         // Have to account for the new lines...
-        maxChars - usedLength(styleLength) - usedLength(notesLength) - usedLength(STORY),
+        maxChars - [styleLength, summaryLength, notesLength, STORY].reduce(sumOfUsed, 0),
         storyText,
         // And here we account for the new line separating each line of the story.
         (text) => text ? text.length + 1 : 0
@@ -150,7 +168,7 @@ const contextModifier = (data) => {
       .value();
   });
 
-  data.text = [...styleText, ...notesText, ...storyText].join("\n");
+  data.text = [...styleText, ...notesText, ...summaryText, ...storyText].join("\n");
 };
 
 /** @type {ContextModeModule} */

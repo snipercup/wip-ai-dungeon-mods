@@ -1,7 +1,7 @@
 /// <reference path="./annotated-context-mode.d.ts" />
 /// <reference path="../context-mode/context-mode.d.ts" />
 const { dew, getText } = require("../utils");
-const { chain, iterReverse, limitText } = require("../utils");
+const { chain, flatMap, iterReverse, limitText } = require("../utils");
 const { getClosestCache, getStateEngineData } = require("../context-mode/utils");
 
 const MAX_MEMORY = 1000;
@@ -160,7 +160,9 @@ const contextModifier = (data) => {
     return chain(theFrontMemory ? [theFrontMemory] : [])
       .concat(iterReverse(history))
       .map(getText)
+      .thru((story) => flatMap(story, (s) => s.split("\n")))
       .map((s) => s.trim())
+      .filter(Boolean)
       .thru((storyText) => limitText(
         // Have to account for the new lines...
         // @ts-ignore - Not typing the `reduce` correctly.

@@ -129,6 +129,35 @@ const init = (data) => {
       // Anything goes with lore entries.
       return [];
     },
+    modifier(stateData, allStates) {
+      if (stateData.key == null) return stateData;
+      if (stateData.include.length !== 0) return stateData;
+
+      // If a `$Lore` has the same `key` as another entry of the same type,
+      // and this entry lacks inclusive keywords, but the other does not, we'll
+      // copy those keywords to this entry.  This makes it a little less irritating
+      // to create multiple lore entries for the same concept or thing.
+      const duplicateEntries = allStates
+        .filter((sd) => sd.type === stateData.type)
+        .filter((sd) => sd.key === stateData.key)
+        .filter((sd) => sd.include.length > 0)
+        .filter((sd) => sd.relations.length === stateData.relations.length);
+      
+      // Must be exactly one match for this to apply.
+      if (duplicateEntries.length !== 1) return stateData;
+
+      // They must also share the same relations, if they have them.
+      const [choosenEntry] = duplicateEntries;
+      if (stateData.relations.length > 0) {
+        const thisSet = new Set(stateData.relations);
+        for (const otherRel of choosenEntry.relations)
+          if (!thisSet.has(otherRel)) return stateData;
+      }
+
+      // The excludes are not considered, and may still differ.
+      stateData.include = [...choosenEntry.include];
+      return stateData;
+    },
     preRules(matcher, source, neighbors) {
       // Do some pre-processing, looking for matching `State` entries that
       // reference this `Lore`.
@@ -162,7 +191,7 @@ const init = (data) => {
       if (stateData.key == null) return stateData;
 
       // If a `$State` has the same `key` as another entry of a different type,
-      // We'll implicitly make it related to it.
+      // we'll implicitly make it related to it.
       const duplicateEntries = allStates
         .filter((sd) => sd.type !== stateData.type)
         .filter((sd) => sd.key === stateData.key);

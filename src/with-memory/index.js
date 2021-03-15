@@ -173,6 +173,6 @@ module.exports.addPlugin = (pipeline) => {
     module.exports.inputModifier,
     // This is used for both.
     module.exports.contextModifier,
-    module.exports.contextModifier
+    module.exports.outputModifier
   ));
 };

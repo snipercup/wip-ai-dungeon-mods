@@ -1,6 +1,7 @@
 const { Pipeline } = require("aid-bundler");
 const { SimpleCommand } = require("./commands");
 const withMemory = require("./with-memory");
+const worldControl = require("./world-control");
 const stateEngine = require("./state-engine");
 const deepState = require("./deep-state");
 const contextMode = require("./context-mode");
@@ -17,6 +18,8 @@ pipeline.commandHandler.addCommand(new SimpleCommand(
 );
 
 withMemory.addPlugin(pipeline);
+
+worldControl.addPlugin(pipeline);
 
 stateEngine.addPlugin(pipeline, deepState.stateModule);
 

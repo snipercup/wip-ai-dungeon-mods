@@ -15,7 +15,7 @@ declare interface WorldInfoEntry {
   id: string;
   entry: string;
   keys: string;
-  isNotHidden: boolean;
+  hidden: boolean;
 }
 
 declare interface ModifierResult {
@@ -109,9 +109,9 @@ declare const history: ReadonlyArray<readonly HistoryEntry>;
 declare const worldInfo: ReadonlyArray<readonly WorldInfoEntry>;
 */
 
-declare function addWorldEntry(keys: string, entry: string, isNotHidden: boolean = false);
+declare function addWorldEntry(keys: string, entry: string, hidden: boolean = false);
 declare function removeWorldEntry(index: number);
-declare function updateWorldEntry(index: number, keys: string, entry: string, isNotHidden: boolean = false);
+declare function updateWorldEntry(index: number, keys: string, entry: string, hidden: boolean = false);
 
 type Maybe<T> = T | null | undefined;
 type MaybeArray<T> = T | T[];

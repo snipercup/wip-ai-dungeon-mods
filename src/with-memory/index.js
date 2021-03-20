@@ -5,6 +5,7 @@ const turnCache = require("../turn-cache");
 
 /**
  * With-Memory
+ * 
  * Extracts and tracks the adventure summary and adds `memory` and `summary`
  * properties to the `AIDData` instance for use by other plugins.  Should be
  * installed as early as possible in the pipeline, typically after the commands.
@@ -171,7 +172,6 @@ module.exports.addPlugin = (pipeline) => {
 
   pipeline.addPlugin(new Plugin("With-Memory",
     module.exports.inputModifier,
-    // This is used for both.
     module.exports.contextModifier,
     module.exports.outputModifier
   ));

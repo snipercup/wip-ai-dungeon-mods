@@ -16,14 +16,6 @@ pipeline.commandHandler.addCommand(new SimpleCommand(
   })
 );
 
-pipeline.commandHandler.addCommand(new SimpleCommand(
-  "clear-authors-note",
-  (data) => {
-    delete data.state.memory.authorsNote;
-    return "Cleared the Author's Note set to state memory."
-  })
-);
-
 withMemory.addPlugin(pipeline);
 
 stateEngine.addPlugin(pipeline, deepState.stateModule);

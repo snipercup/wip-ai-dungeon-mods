@@ -11,22 +11,22 @@ const { chain, toPairs, fromPairs, tuple2 } = require("../utils");
 
   const sortedCache = chain(toPairs(stateStorage))
     .map(([key, cacheObj]) => tuple2(Number(key), cacheObj))
-    .value((kvps) => [...kvps].sort(([a], [b]) => a - b));
+    .value((kvps) => [...kvps].sort(([a], [b]) => b - a));
 
   let earliestEntry;
   for (const currentEntry of sortedCache) {
-    earliestEntry = currentEntry;
     const [turn] = currentEntry;
+    if (turn > actionCount) continue;
     if (turn === actionCount) return currentEntry;
+
+    earliestEntry = currentEntry;
+    break;
   }
 
-  // No suitable entry found, object was empty.
-  if (!earliestEntry) return undefined;
+  if (earliestEntry) return earliestEntry;
 
-  const [turn] = earliestEntry;
-  // The earliest entry is still later than the current turn; nothing usable.
-  if (turn > actionCount) return undefined;
-  return earliestEntry;
+  // No suitable entry found; object was empty or all entries come after this turn.
+  return undefined;
 };
 
 /**

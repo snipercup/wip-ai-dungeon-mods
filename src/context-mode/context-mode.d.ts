@@ -5,10 +5,8 @@ interface ContextModeModule {
   output?: BundledModifierFn;
 }
 
-interface ContextData extends StateEngineData {
+interface ContextData extends StateEngineData, StateEngineCacheData {
   worldInfo: WorldInfoEntry;
-  score: StateEngineCacheData["score"];
-  priority: StateEngineCacheData["priority"];
   text: string;
 }
 

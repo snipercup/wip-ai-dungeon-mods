@@ -11,7 +11,7 @@ const turnCache = require("../turn-cache");
  * history was undone farther than the cache had memory for.
  * 
  * @param {import("aid-bundler/src/aidData").AIDData} aidData
- * @returns {StateDataCache | undefined}
+ * @returns {Maybe<StateDataCache>}
  */
 module.exports.getClosestCache = (aidData) => {
   /** @type {import("../turn-cache").ReadCache<StateDataCache>} */
@@ -39,8 +39,8 @@ module.exports.getClosestCache = (aidData) => {
  * with information you're likely to want while processing the context.
  * 
  * @param {import("aid-bundler/src/aidData").AIDData} aidData
- * @param {StateEngineCacheData | undefined} assocData
- * @returns {ContextData | undefined}
+ * @param {Maybe<StateEngineCacheData>} assocData
+ * @returns {Maybe<ContextData>}
  */
 module.exports.getStateEngineData = (aidData, assocData) => {
   if (assocData == null) return undefined;
@@ -61,6 +61,6 @@ module.exports.getStateEngineData = (aidData, assocData) => {
   const text = worldInfo.entry.trim();
   if (!text) return undefined;
 
-  const { score, priority } = assocData;
-  return { ...stateData, worldInfo, score, priority, text };
+  const { score, priority, source } = assocData;
+  return { ...stateData, worldInfo, score, priority, source, text };
 };

@@ -158,6 +158,17 @@ module.exports.commands = [
     delete data.state.$$latestSummary;
     turnCache.clearCache(data, "WithMemory.summary");
     return "Cleared With-Memory caches.";
+  }),
+  new SimpleCommand("set-authors-note", (data, args) => {
+    const newNote = args.join(" ");
+    if (!newNote) {
+      delete data.state.memory.authorsNote;
+      return "Removed the author's note.";
+    }
+    else {
+      data.state.memory.authorsNote = newNote;
+      return `Author's note set to: ${newNote}`;
+    }
   })
 ];
 

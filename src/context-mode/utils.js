@@ -24,10 +24,10 @@ module.exports.getClosestCache = (aidData) => {
   const theShift = actionCount - fromTurn;
   const newHistory = chain(toPairs(storage.forHistory))
     .map(([key, data]) => {
-      const newTurn = Number(key) - theShift;
+      const newTurn = Number(key) + theShift;
       const newData
         = typeof data.source !== "number" ? data
-        : { ...data, source: data.source - theShift };
+        : { ...data, source: data.source + theShift };
       return tuple2(newTurn, newData);
     })
     .value((kvps) => fromPairs(kvps));

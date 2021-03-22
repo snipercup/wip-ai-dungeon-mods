@@ -6,6 +6,7 @@ const stateEngine = require("./state-engine");
 const deepState = require("./deep-state");
 const contextMode = require("./context-mode");
 const annotatedMode = require("./annotated-context-mode");
+const forwardMode = require("./forward-context-mode");
 
 const pipeline = new Pipeline();
 
@@ -35,6 +36,6 @@ worldControl.addPlugin(pipeline);
 
 stateEngine.addPlugin(pipeline, deepState.stateModule);
 
-contextMode.addPlugin(pipeline, annotatedMode.contextModeModule);
+contextMode.addPlugin(pipeline, annotatedMode.contextModeModule, forwardMode.contextModeModule);
 
 pipeline.build();

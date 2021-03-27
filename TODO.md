@@ -1,12 +1,5 @@
 # TODO
 
-## Summarine
-Creates a World Info entry that tracks the relevant Adventure Summary.  Places it
-into a `$Summary` State Engine entry so it can be used with Context-Mode more easily.
-
-Should be an `implicit` entry, so it can be matched with `implicitRef` associators.
-Should have a minimum priority, so it gets shuffled closer to the story text, in general.
-
 ## State Engine State Object
 Right now, we have a bunch of `let` variables that store the processing state as it
 flows through the various functions.  If we pull those out, we can place more of
@@ -20,3 +13,48 @@ Uses `$Style` and `$Theme` states to help guide the AI's writing.
 A system of automatically setting the `frontMemory` based on a system of cooldowns
 and keyword matching.  They essentially forcibly inject text in front of the
 player's text to covertly influence the AI.
+
+## Context Builder (a tool for Context Mode)
+Once the requirements for constructing a context are fully explored, create an API
+that will simplify context construction from various data-sources:
+
+```js
+(builder) => {
+  const reStorySoFar = /^The story so far:\s+((?:.|\s)*?)$/i;
+
+  builder
+    .section("context", (builder) => {
+      const note = builder
+        .source("StateEngine.forContextMemory")
+        .discardable()
+        .prioritizeBy("priority", "desc")
+        .prioritizeBy("score", "desc");
+        
+      const summary = builder
+        .source("WithMemory.summary")
+        .map((text) => {
+          const [, fixedSummary] = reStorySoFar.exec(text) ?? [];
+          return fixedSummary;
+        });
+
+      return builder.printMemLn(note).printMemLn(summary).printMemLn("--------");
+    })
+    .section("story", (builder) => {
+      const note = builder
+        .source("StateEngine.forHistory")
+        .map((text) => `[Note: ${text}]`);
+      const authorsNote = builder.source("authorsNote")
+        .map((text) => `[Style: ${{text}}]`);
+      const frontMem = builder.source("frontMemory");
+      const history = builder.source("history")
+        .before(-3).printMemLn(authorsNote)
+        .after(-1).printMemLn(frontMem);
+
+      const historyPair = builder
+        .join(note, "source", history, "offset")
+        .printMemLn(note)
+        .printOutLn(history);
+      return builder.printOutLn(historyPair).printOutLn(frontMem);
+    })
+};
+```

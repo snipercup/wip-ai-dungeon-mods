@@ -64,3 +64,62 @@ module.exports.getStateEngineData = (aidData, assocData) => {
   const { score, priority, source } = assocData;
   return { ...stateData, worldInfo, score, priority, source, text };
 };
+
+/**
+ * Cleans up a string for presentation in the context, removing useless
+ * characters from the output.
+ * 
+ * @param {string} text 
+ * @returns {string[]}
+ */
+module.exports.cleanText = (text) =>
+  text.split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+/**
+ * Gets the length of a string, as if it were contributing to an `Array.join`.
+ * 
+ * @param {string | number} value
+ * The string or a number representing a string's length.
+ * @param {string} [joiner]
+ * The string that will be used to join them; defaults to `"\n"`.
+ * @returns {number}
+ */
+module.exports.usedLength = (value, joiner = "\n") => {
+  const length = typeof value === "string" ? value.length : value;
+  return length > 0 ? length + joiner.length : 0;
+};
+
+/**
+ * A function for `Array.reduce` that sums all the lengths in an array.
+ * Accepts both a raw `string` to calculate the length from or a pre-calculated
+ * `number` length.
+ * 
+ * @param {string} [joiner]
+ * The string that will be used to join them; defaults to `"\n"`.
+ * @returns {(acc: number, next: string | number) => number}
+ */
+module.exports.sumOfUsed = (joiner = "\n") => (acc, next) =>
+  acc + module.exports.usedLength(next, joiner);
+
+/**
+ * Gets the length of an iterable of strings, as if joined together with `joiner`.
+ * 
+ * @param {string | string[] | Iterable<string>} value
+ * The value to calculate the length for.
+ * @param {string} [joiner]
+ * The string that will be used to join them; defaults to `"\n"`.
+ * @returns {number}
+ */
+module.exports.joinedLength = (value, joiner = "\n") => {
+  if (typeof value === "string") return value.length;
+  let count = 0;
+  let totalLength = 0;
+  for (const str of value) {
+    totalLength += str.length;
+    count += 1;
+  }
+
+  return totalLength + (count > 0 ? (count - 1) * joiner.length : 0);
+};

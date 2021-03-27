@@ -3,6 +3,7 @@
 const { dew, getText } = require("../utils");
 const { chain, flatMap, iterReverse, limitText } = require("../utils");
 const { getClosestCache, getStateEngineData } = require("../context-mode/utils");
+const { cleanText, usedLength, sumOfUsed, joinedLength } = require("../context-mode/utils");
 
 const MAX_MEMORY = 1000;
 const STYLE = "Style:";
@@ -38,43 +39,6 @@ const sortPrioritized = (theNotes) => {
   return sortedNotes
     .map((ad) => ad.text.trim())
     .filter((text) => Boolean(text));
-};
-
-/**
- * Cleans up a string for the presentation desired.
- * 
- * @param {string} text 
- * @returns {string[]}
- */
-const cleanText = (text) => text.split("\n")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-/** @type {(value: number | string) => number} */
-const usedLength = (value) => {
-  const length = typeof value === "string" ? value.length : value;
-  return length > 0 ? length + 1 : 0;
-};
-
-/** @type {(a: number, n: string | number) => number} */
-const sumOfUsed = (a, n) => a + usedLength(n);
-
-/**
- * Gets the length of a string, joined with `\n` characters.
- * 
- * @param {string | string[] | Iterable<string>} value
- * @returns {number}
- */
-const joinedLength = (value) => {
-  if (typeof value === "string") return value.length;
-  let count = 0;
-  let totalLength = 0;
-  for (const str of value) {
-    totalLength += str.length;
-    count += 1;
-  }
-
-  return totalLength + (count > 0 ? count - 1 : 0);
 };
 
 /** @type {BundledModifierFn} */
@@ -156,7 +120,7 @@ const contextModifier = (data) => {
       .thru((sortedNotes) => limitText(
         // Have to account for the new lines for `styleLines` and `NOTES`.
         // @ts-ignore - Not typing the `reduce` correctly.
-        MAX_MEMORY - [styleLength, NOTES].reduce(sumOfUsed, 0),
+        MAX_MEMORY - [styleLength, NOTES].reduce(sumOfUsed(), 0),
         sortedNotes,
         // And here we account for the new line separating each note.
         (text) => text.length + 1
@@ -183,7 +147,7 @@ const contextModifier = (data) => {
       .thru((storyText) => limitText(
         // Have to account for the new lines...
         // @ts-ignore - Not typing the `reduce` correctly.
-        maxChars - [styleLength, summaryLength, notesLength, tagText].reduce(sumOfUsed, 0),
+        maxChars - [styleLength, summaryLength, notesLength, tagText].reduce(sumOfUsed(), 0),
         storyText,
         // And here we account for the new line separating each line of the story.
         (text) => text ? text.length + 1 : 0

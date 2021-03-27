@@ -1,7 +1,7 @@
 /// <reference path="./state-engine.d.ts" />
 const { dew, shutUpTS, tuple2, tuple3 } = require("../utils");
 const { chain, iterArray, iterReverse, groupBy, mapValues, mapIter } = require("../utils");
-const { toPairs, fromPairs, ident, getText } = require("../utils");
+const { escapeRegExp, toPairs, fromPairs, ident, getText } = require("../utils");
 const { Roulette } = require("../utils/Roulette");
 const { MatchableEntry, memoizedCounter } = require("./MatchableEntry");
 const { StateEngineEntry } = require("./StateEngineEntry");
@@ -273,6 +273,23 @@ const modifyStateEntries = (data) => {
 };
 
 /**
+ * Matches the type of input mode the player performed to submit the input.
+ * This information is not currently provided by the API, and I like normalized data.
+ * 
+ * @param {import("aid-bundler/src/aidData").AIDData} data
+ * @returns {"do" | "say" | "story"}
+ */
+const parseInputMode = (data) => {
+  const { info: { characters }, text } = data;
+  const charMatch = ["you", ...characters.map((pi) => escapeRegExp(pi.name))].join("|");
+
+  // Check for `say` first, since it is more ambiguous than `do`.
+  if (new RegExp(`^\\>\\s+(?:${charMatch}) says?`, "i").test(text)) return "say";
+  if (new RegExp(`^\\>\\s+(?:${charMatch})`, "i").test(text)) return "do";
+  return "story";
+};
+
+/**
  * Finalizes the internal state before processing.
  * 
  * @type {BundledModifierFn}
@@ -284,7 +301,7 @@ const finalizeForProccessing = (data) => {
 
   currentEntriesMap = mapValues(newCache, (sd, id) => new StateEngineEntry(sd, worldInfoMap[id]));
   stateAssociations = new Map();
-  workingHistory = [...history.slice(-1 * entryCount), { text, type: "story" }];
+  workingHistory = [...history.slice(-1 * entryCount), { text, type: parseInputMode(data) }];
 
   sortedStateMatchers = Object.keys(currentEntriesMap)
     .map((id) => currentEntriesMap[id])

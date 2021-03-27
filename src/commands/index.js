@@ -38,7 +38,9 @@ class MatchCommand extends Command {
       if (patterns instanceof Map) {
         for (const [pattern, handler] of patterns) {
           const regex
-            = pattern instanceof RegExp ? pattern
+            // The `null` value is for the default pattern.
+            = pattern == null ? /.*/
+            : pattern instanceof RegExp ? pattern
             : new RegExp(`^${escapeRegExp(pattern)}$`, "i");
           patternMap.set(regex, handler);
         }

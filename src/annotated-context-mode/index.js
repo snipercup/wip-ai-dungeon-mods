@@ -86,6 +86,22 @@ const contextModifier = (data) => {
   const { authorsNote, frontMemory } = state.memory;
   const { maxChars } = info;
 
+  // Determine the maximum number of history entries we could possibly
+  // fit.  This will determine how far back we can include entries for.
+  const maxHistory = chain(iterReverse(history))
+    .map(getText)
+    .map(usedLength)
+    .value((lengths) => {
+      let sum = MAX_MEMORY * 0.9;
+      let count = 0;
+      for (const length of lengths) {
+        if (length + sum > maxChars) break;
+        sum += length;
+        count += 1;
+      }
+      return count;
+    });
+
   const styleText = dew(() => {
     if (!authorsNote) return [];
     const theStyle = cleanText(authorsNote);
@@ -120,6 +136,7 @@ const contextModifier = (data) => {
       .concat(forContext, forHistory)
       .map((cached) => getStateEngineData(data, cached))
       .filter(Boolean)
+      .filter((sd) => typeof sd.source !== "number" || sd.source <= maxHistory)
       .map((sd) => ({ ...sd, text: cleanText(sd.text).join("  ") }))
       .concat(dew(() => {
         if (!playerMemory) return [];

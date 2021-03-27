@@ -1,7 +1,7 @@
 /// <reference path="./context-mode.d.ts" />
 /// <reference path="../commands/commands.d.ts" />
 const { Plugin } = require("aid-bundler");
-const { SimpleCommand } = require("../commands");
+const { MatchCommand } = require("../commands");
 
 /** @type {Map<string, ContextModeModule>} */
 const registeredModules = new Map();
@@ -18,26 +18,54 @@ module.exports.makeModifier = (modifierKey) => (data) => {
   const theModule = registeredModules.get(state.$$contextMode || "vanilla");
   theModule?.[modifierKey]?.(data);
 };
+/** @type {Array<PatternCommandEntry>} */
+const commandPatterns = [
+  [/^set .*$/, (data, args) => {
+    if (args.length !== 2)
+      return "The `set` sub-command expects only a one argument.";
 
-module.exports.commands = [
-  new SimpleCommand("context-mode", (data, args) => {
-    data.text = "";
-
-    const [newMode] = args;
-    if (!newMode)
-      return "A single argument is required.";
-
+    const [, newMode] = args;
     const fixedName = newMode.toLowerCase();
     if (fixedName !== "vanilla" && !registeredModules.has(fixedName)) {
       return [
-        `No Context-Mode module named "${newMode}" exists.`,
-        "Use the name \"vanilla\" to disable this modifier."
+        `No Context-Mode module named "${newMode}" is registered.`,
+        "Use the sub-command \`list\` to get a list of available modes."
       ].join("\n");
     }
 
     data.state.$$contextMode = fixedName;
     return `Set context mode to: ${newMode}`;
-  })
+  }],
+  ["set", () => {
+    return [
+      "A single additional argument for `set` is required.",
+      "Use the sub-command \`list\` to get a list of available modes."
+    ].join("\n");
+  }],
+  ["list", () => {
+    if (registeredModules.size === 0)
+      return "Available context modes: vanilla";
+
+    const regModes = [...registeredModules].map(([name]) => name);
+    return `Available context modes: vanilla, ${regModes.join(", ")}`;
+  }],
+  ["current", (data) => {
+    const { $$contextMode } = data.state;
+    return `Current context mode is: ${$$contextMode || "vanilla"}`;
+  }],
+  [null, () => {
+    return [
+      "Unrecognized or missing sub-command.",
+      "Available context-mode sub-commands:",
+      "  set <module-name> - Sets the context-mode.",
+      "  list - Lists all available modes.",
+      "  current - Displays the current mode."
+    ].join("\n");
+  }]
+];
+
+module.exports.commands = [
+  new MatchCommand("context-mode", new Map(commandPatterns))
 ];
 
 /**

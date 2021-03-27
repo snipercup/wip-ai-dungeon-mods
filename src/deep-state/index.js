@@ -137,10 +137,12 @@ const init = (data) => {
       // and this entry lacks inclusive keywords, but the other does not, we'll
       // copy those keywords to this entry.  This makes it a little less irritating
       // to create multiple lore entries for the same concept or thing.
+      // Only works for lore entries with no exclusion keywords.
       const duplicateEntries = allStates
         .filter((sd) => sd.type === stateData.type)
         .filter((sd) => sd.key === stateData.key)
         .filter((sd) => sd.include.length > 0)
+        .filter((sd) => sd.exclude.length === 0)
         .filter((sd) => sd.relations.length === stateData.relations.length);
       
       // Must be exactly one match for this to apply.
@@ -154,7 +156,6 @@ const init = (data) => {
           if (!thisSet.has(otherRel)) return stateData;
       }
 
-      // The excludes are not considered, and may still differ.
       stateData.include = [...choosenEntry.include];
       return stateData;
     },

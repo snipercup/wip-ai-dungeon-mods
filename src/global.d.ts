@@ -8,7 +8,7 @@ declare interface Array<T> {
 
 declare interface HistoryEntry {
   text: string;
-  type: "story" | "continue";
+  type: "do" | "say" | "story" | "continue";
 }
 
 declare interface WorldInfoEntry {
@@ -16,6 +16,13 @@ declare interface WorldInfoEntry {
   entry: string;
   keys: string;
   hidden: boolean;
+}
+
+declare interface QuestInfo {
+  id: string,
+  quest: string;
+  active: boolean;
+  completed: boolean;
 }
 
 declare interface ModifierResult {
@@ -107,6 +114,7 @@ declare const state: GameState;
 declare const memory: string;
 declare const history: ReadonlyArray<readonly HistoryEntry>;
 declare const worldInfo: ReadonlyArray<readonly WorldInfoEntry>;
+declare const quests: Array<QuestInfo>;
 */
 
 declare function addWorldEntry(keys: string, entry: string, hidden: boolean = false);

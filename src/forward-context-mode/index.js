@@ -153,7 +153,7 @@ const contextModifier = (data) => {
         }
         else yield* story;
       })
-      .thru((story) => flatMap(story, (s) => s.split("\n")))
+      .thru((story) => flatMap(story, (s) => s.split("\n").reverse()))
       .map((s) => s.trim())
       .filter(Boolean)
       .thru((storyText) => limitText(

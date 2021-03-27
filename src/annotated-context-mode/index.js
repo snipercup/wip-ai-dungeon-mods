@@ -160,7 +160,7 @@ const contextModifier = (data) => {
     return chain(theFrontMemory ? [theFrontMemory] : [])
       .concat(iterReverse(history))
       .map(getText)
-      .thru((story) => flatMap(story, (s) => s.split("\n")))
+      .thru((story) => flatMap(story, (s) => s.split("\n").reverse()))
       .map((s) => s.trim())
       .filter(Boolean)
       .thru((storyText) => limitText(

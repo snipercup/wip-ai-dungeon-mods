@@ -118,6 +118,25 @@ module.exports.flatMap = function* (iterable, transformFn) {
 };
 
 /**
+ * Flattens the given iterable.  If the iterable contains strings, which
+ * are themselves iterable, they will be yielded as-is, without flattening them.
+ * 
+ * @template {Flattenable<any>} T
+ * @param {Iterable<T>} iterable
+ * @returns {Iterable<Flattenable<T>>}
+ */
+module.exports.flatten = function* (iterable) {
+  for (const value of iterable) {
+    // @ts-ignore - We pass out non-iterables, as they are.
+    if (!module.exports.hasIterator(value)) yield value;
+    // @ts-ignore - We don't flatten strings.
+    else if (typeof value === "string") yield value;
+    // And now, do a flatten.
+    else yield* value;
+  }
+};
+
+/**
  * Iterates over an array, yielding the current index and item.
  * 
  * @template T
@@ -276,20 +295,22 @@ module.exports.tapIter = function* (iterable, tapFn) {
 
 /** @type {ChainingFn} */
 module.exports.chain = module.exports.dew(() => {
-  const { mapIter, filterIter, concat, tapIter } = module.exports;
+  const { mapIter, filterIter, concat, tapIter, flatten } = module.exports;
   // @ts-ignore - Should be checked.
   const chain = (iterable) => {
     iterable = iterable ?? [];
     /** @type {ChainComposition<any>} */
     const result = {
       map: (transformFn) => chain(mapIter(iterable, transformFn)),
+      flatten: () => chain(flatten(iterable)),
       // @ts-ignore - Fitting an overloaded method; TS can't handle it.
       filter: (predicateFn) => chain(filterIter(iterable, predicateFn)),
       concat: (...others) => chain(concat(iterable, ...others)),
       thru: (transformFn) => chain(transformFn(iterable)),
       tap: (tapFn) => chain(tapIter(iterable, tapFn)),
       /** @param {TransformFn<any, any>} [xformFn] */
-      value: (xformFn) => xformFn ? xformFn(iterable) : iterable
+      value: (xformFn) => xformFn ? xformFn(iterable) : iterable,
+      toArray: () => [...iterable]
     };
     return result;
   };

@@ -559,7 +559,7 @@ const superHappyRouletteTime = (data) => {
     // Now, we want to create a list of winners, with their weights.
     .map(([source, roulette]) => tuple2(source, [...spinToWin(roulette)]))
     // Materialize the result.
-    .value((final) => [...final]);
+    .toArray();
   
   /** @type {ScoresMap} */
   const scoresMap = chain(winnersArr)

@@ -5,7 +5,7 @@ const { chain, iterReverse, iterPosition, limitText } = require("../utils");
 const { getClosestCache, getStateEngineData, buildHistoryData } = require("../context-mode/utils");
 const { cleanText, sumOfUsed, joinedLength } = require("../context-mode/utils");
 
-const MAX_MEMORY = 1000;
+const MAX_MEMORY_FACTOR = 1/3;
 const NOTES = "Reader's Notes:";
 const BREAK = "--------";
 
@@ -44,6 +44,9 @@ const contextModifier = (data) => {
   const { state, info, playerMemory, summary } = data;
   const { authorsNote, frontMemory } = state.memory;
   const { maxChars } = info;
+
+  // Determine how much of the context we're going to commit to extra stuff.
+  const maxMemory = (maxChars * MAX_MEMORY_FACTOR) | 0;
 
   // Materialize the history data into an array, limiting it to the entries
   // that can possibly fit into the context.  This comes out already reversed.
@@ -96,7 +99,7 @@ const contextModifier = (data) => {
       .thru((sortedNotes) => limitText(
         // Have to account for the new lines for `styleLines` and `NOTES`.
         // @ts-ignore - Not typing the `reduce` correctly.
-        MAX_MEMORY - [styleLength, NOTES].reduce(sumOfUsed(), 0),
+        maxMemory - [styleLength, NOTES].reduce(sumOfUsed(), 0),
         sortedNotes,
         {
           // Here we account for the new line separating each note.

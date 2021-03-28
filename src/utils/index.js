@@ -327,7 +327,11 @@ const getLength = (value) => module.exports.getText(value).length;
 
 /**
  * Yields strings of things with a `text` property from the given iterable until
- * the next text would exceed the given `maxLength`.
+ * the text would exceed the given `maxLength`.
+ * 
+ * If `options.permissive` is:
+ * - `true` - It will yield as much text as can fit.
+ * - `false` - It will stop at the first text that cannot fit.
  * 
  * Does not yield empty strings and skips nullish values.
  * 
@@ -336,13 +340,18 @@ const getLength = (value) => module.exports.getText(value).length;
  * The maximum amount of text to yield.
  * @param {Iterable<TValue>} textIterable
  * The iterable to yield from.
- * @param {(value: TValue) => number} [lengthGetter]
+ * @param {Object} [options]
+ * @param {(value: TValue) => number} [options.lengthGetter]
  * A transformation function to obtain a length from the value.  By default, it will
  * attempt to convert it with `getText` and produce the length of the result.  Since
  * this function return `""` if it can't find any text, it will not yield those values.
+ * @param {boolean} [options.permissive=false]
+ * If set to `true`, text that exceeds the length will only be skipped, allowing the
+ * search for a shorter string to be included instead.
  * @returns {Iterable<TValue>}
  */
- module.exports.limitText = function* (maxLength, textIterable, lengthGetter = getLength) {
+module.exports.limitText = function* (maxLength, textIterable, options) {
+  const { lengthGetter = getLength, permissive = false } = options ?? {};
   const textIterator = textIterable[Symbol.iterator]();
   let lengthRemaining = maxLength;
   let next = textIterator.next();
@@ -351,10 +360,13 @@ const getLength = (value) => module.exports.getText(value).length;
     if (length <= 0) continue;
 
     const nextLength = lengthRemaining - length;
-    if (nextLength < 0) return;
-
-    yield next.value;
-    lengthRemaining = nextLength;
+    if (nextLength < 0) {
+      if (!permissive) return;
+    }
+    else {
+      yield next.value;
+      lengthRemaining = nextLength;
+    }
   }
 };
 

@@ -105,8 +105,11 @@ const contextModifier = (data) => {
         // @ts-ignore - Not typing the `reduce` correctly.
         MAX_MEMORY - [styleLength, NOTES].reduce(sumOfUsed(), 0),
         sortedNotes,
-        // And here we account for the new line separating each note.
-        (text) => text.length + 1
+        {
+          // Here we account for the new line separating each note.
+          lengthGetter: (text) => text.length + 1,
+          permissive: true
+        }
       ))
       .value((limitedNotes) => {
         const result = [...limitedNotes];
@@ -143,8 +146,10 @@ const contextModifier = (data) => {
         // @ts-ignore - Not typing the `reduce` correctly.
         maxChars - [BREAK, summaryLength, notesLength].reduce(sumOfUsed(), 0),
         storyText,
-        // And here we account for the new line separating each line of the story.
-        (text) => text ? text.length + 1 : 0
+        {
+          // Here we account for the new line separating each line of the story.
+          lengthGetter: (text) => text ? text.length + 1 : 0
+        }
       ))
       .thru((storyText) => [BREAK, ...theSummary, ...iterReverse(storyText)])
       .value();

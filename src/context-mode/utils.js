@@ -69,13 +69,16 @@ module.exports.getStateEngineData = (aidData, assocData) => {
  * Cleans up a string for presentation in the context, removing useless
  * characters from the output.
  * 
- * @param {string} text 
+ * @param {Maybe<string>} text 
  * @returns {string[]}
  */
-module.exports.cleanText = (text) =>
-  text.split("\n")
+module.exports.cleanText = (text) => {
+  if (!text) return [];
+
+  return text.split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+};
 
 /** Matches any string that appears to start with a new line. */
 const reNewLine = /^\s*?\n/;

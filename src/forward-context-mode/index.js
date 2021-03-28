@@ -121,8 +121,8 @@ const contextModifier = (data) => {
     const theSummary = cleanText(summary);
     const summaryLength = joinedLength(theSummary);
     // This comes in front of the history we emit.
-    const theFrontMemory = frontMemory?.trim();
-    return chain(theFrontMemory ? [theFrontMemory] : [])
+    const theFrontMemory = cleanText(frontMemory).reverse();
+    return chain(theFrontMemory)
       .concat(historyData)
       .map(getText)
       .thru(function* (story) {

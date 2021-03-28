@@ -136,8 +136,8 @@ const contextModifier = (data) => {
   const storyText = dew(() => {
     // Swap the text if the summary is included.
     const tagText = usedLength(summaryLength) > 0 ? EXCERPT : STORY;
-    const theFrontMemory = frontMemory?.trim();
-    return chain(theFrontMemory ? [theFrontMemory] : [])
+    const theFrontMemory = cleanText(frontMemory).reverse();
+    return chain(theFrontMemory)
       .concat(historyData)
       .map(getText)
       .map((s) => s.trim())

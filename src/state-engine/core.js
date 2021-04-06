@@ -42,18 +42,18 @@ const worldStateDefinitions = {};
  * @param {StateEngineData} b 
  */
 const stateSorter = (a, b) => {
-  // When one references the other, sort the one doing the referencing later.
-  // It is possible that they reference each other; this is undefined behavior.
-  if (a.relations.includes(b.type)) return 1;
-  if (b.relations.includes(a.type)) return -1;
+  // When one has a key and the other doesn't, sort the key'd one later.
+  const aHasKey = Boolean(a.key);
+  if (aHasKey !== Boolean(b.key)) return aHasKey ? 1 : -1;
 
   // When one has more references, sort that one later.
   const refCount = a.relations.length - b.relations.length;
   if (refCount !== 0) return refCount;
 
-  // When one has a key and the other doesn't, sort the key'd one later.
-  const aHasKey = Boolean(a.key);
-  if (aHasKey !== Boolean(b.key)) return aHasKey ? 1 : -1;
+  // When one references the other, sort the one doing the referencing later.
+  // It is possible that they reference each other; this is undefined behavior.
+  if (a.relations.includes(b.type)) return 1;
+  if (b.relations.includes(a.type)) return -1;
 
   return 0;
 };

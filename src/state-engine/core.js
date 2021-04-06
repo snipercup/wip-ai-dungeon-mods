@@ -52,8 +52,8 @@ const stateSorter = (a, b) => {
 
   // When one references the other, sort the one doing the referencing later.
   // It is possible that they reference each other; this is undefined behavior.
-  if (a.relations.includes(b.type)) return 1;
-  if (b.relations.includes(a.type)) return -1;
+  if (b.key && a.relations.includes(b.key)) return 1;
+  if (a.key && b.relations.includes(a.key)) return -1;
 
   return 0;
 };

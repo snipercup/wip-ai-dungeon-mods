@@ -281,7 +281,11 @@ const modifyStateEntries = (data) => {
  */
 const parseInputMode = (data) => {
   const { info: { characters }, text } = data;
-  const charMatch = ["you", ...characters.map((pi) => escapeRegExp(pi.name))].join("|");
+  const allCharacters = characters
+    .map((pi) => pi.name?.trim())
+    .filter(Boolean)
+    .map((name) => escapeRegExp(name));
+  const charMatch = ["you", ...allCharacters].join("|");
 
   // Check for `say` first, since it is more ambiguous than `do`.
   if (new RegExp(`^\\>\\s+(?:${charMatch}) says?`, "i").test(text)) return "say";

@@ -61,7 +61,8 @@ declare interface InventoryItem {
 }
 
 declare interface PlayerInfo {
-  name: string;
+  /** The player's name.  May be `null` at the start of the game. */
+  name: string | null;
 }
 
 declare type SkillDictionary = Record<string, number>;

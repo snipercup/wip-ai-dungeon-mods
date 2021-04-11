@@ -1,8 +1,8 @@
 /// <reference path="./state-engine.d.ts" />
 /// <reference path="../commands/commands.d.ts" />
 const { Plugin } = require("aid-bundler");
-const { SimpleCommand } = require("../commands");
-const { flatMap, iterReverse } = require("../utils");
+const { MatchCommand } = require("../commands");
+const { flatMap, iterReverse, chain, toPairs, fromPairs, tuple2 } = require("../utils");
 const { stateModule: coreModule } = require("./core");
 const { stateModule: vanillaModule } = require("./vanilla");
 const turnCache = require("../turn-cache");
@@ -34,12 +34,49 @@ module.exports.inputModifier = (...stateModules) => {
   };
 };
 
-module.exports.commands = [
-  new SimpleCommand("reset-state-engine", (data) => {
+/**
+ * @param {Record<string, WorldInfoEntry>} worldInfoMap 
+ * @param {Iterable<[string | number, StateEngineCacheData | null]>} entries
+ */
+const reportOn = function* (worldInfoMap, entries) {
+  for (const [location, entry] of entries) {
+    if (!entry) continue;
+    const info = worldInfoMap[entry.infoId];
+    if (!info) continue;
+    const snipette = info.entry.split(" ").filter(Boolean).slice(0, 5).join(" ");
+    yield `${location}: ${info.keys} -- ${snipette}`;
+  }
+};
+
+/** @type {Array<[string | RegExp, SimpleCommandHandler]>} */
+const commandPatterns = [
+  // Reports more readable information about the latest state-data.
+  ["report", (data) => {
+    /** @type {import("../turn-cache").ReadCache<StateDataCache>} */
+    const { storage } = turnCache.forRead(data, "StateEngine.association", { loose: true });
+    if (!storage) return "No State-Engine data is available.";
+
+    const worldInfoMap = fromPairs(data.worldEntries.map((wi) => tuple2(wi.id, wi)));
+
+    return chain()
+      .concat(storage.forContextMemory.map((v) => tuple2("CMEM", v)))
+      .concat(toPairs(storage.forHistory))
+      .concat([tuple2("AUTH", storage.forAuthorsNote)])
+      .concat([tuple2("FMEM", storage.forFrontMemory)])
+      .thru((entries) => reportOn(worldInfoMap, entries))
+      .toArray()
+      .join("\n");
+  }],
+  // Debug command; clears the cache.
+  ["reset", (data) => {
     delete data.state.$$stateDataCache;
     turnCache.clearCache(data, "StateEngine.association");
     return "Cleared State Engine caches.";
-  })
+  }]
+];
+
+module.exports.commands = [
+  new MatchCommand("state-engine", new Map(commandPatterns))
 ];
 
 /**

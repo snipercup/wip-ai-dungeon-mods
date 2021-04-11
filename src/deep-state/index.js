@@ -69,6 +69,10 @@ const init = (data) => {
       // Use the default associator, otherwise.
       return undefined;
     },
+    valuator() {
+      // Give these entries a higher score.
+      return 10;
+    },
     postRules(matcher, source, score, neighbors) {
       // Always retain when implicit.
       if (source === "implicit") return true;
@@ -101,6 +105,12 @@ const init = (data) => {
       if (typeof source !== "number") return false;
       // Use the default associator from here on.
       return undefined;
+    },
+    /** @type {StateValuatorBaseFn} */
+    valuator(matcher, source) {
+      // Give these entries a higher, in general, but the biggest boost if they
+      // are actually mentioned in the text.
+      return source === "implicit" ? 4 : 8;
     }
   });
 
@@ -118,6 +128,10 @@ const init = (data) => {
     associator(matcher, source) {
       // Only associate implicitly.
       return source === "implicit";
+    },
+    valuator() {
+      // Give these entries a flat score.
+      return [40];
     }
   });
 
@@ -237,7 +251,7 @@ const init = (data) => {
       return true;
     },
     valuator() {
-      // Give these entries a higher priority.
+      // Give these entries a higher score.
       return 10;
     },
     postRules(matcher, source, score, neighbors) {

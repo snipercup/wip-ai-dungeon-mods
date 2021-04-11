@@ -46,6 +46,15 @@ module.exports.tuple2 = (a, b) => [a, b];
 module.exports.tuple3 = (a, b, c) => [a, b, c];
 
 /**
+ * Checks that a value is not `null` or `undefined`.
+ * 
+ * @template T
+ * @param {T} value 
+ * @returns {value is Exclude<T, null | undefined>}
+ */
+module.exports.isInstance = (value) => value != null;
+
+/**
  * Tests if something is iterable.  This will include strings, which indeed,
  * are iterable.
  * 

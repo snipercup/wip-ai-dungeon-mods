@@ -328,6 +328,26 @@ module.exports.chain = module.exports.dew(() => {
 });
 
 /**
+ * Memoizes a pure function that takes a single argument.  If you need to memoize more,
+ * use currying to break the function down into separate arguments.
+ * 
+ * @template {(arg: any) => any} TFunction
+ * @param {TFunction} fn
+ * @returns {TFunction}
+ */
+module.exports.memoize = (fn) => {
+  const store = new Map();
+
+  // @ts-ignore - Shut up TS.
+  return (arg) => {
+    if (store.has(arg)) return store.get(arg);
+    const result = fn(arg);
+    store.set(arg, result);
+    return result;
+  };
+};
+
+/**
  * Default `lengthGetter` for `limitText`.
  * 
  * @param {unknown} value 

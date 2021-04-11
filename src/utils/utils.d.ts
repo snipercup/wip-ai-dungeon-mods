@@ -35,6 +35,8 @@ interface ChainComposition<TIterIn extends Iterable<any>> {
   value(): TIterIn;
   /** Ends the chain and materializes the iterable as an array. */
   toArray(): Array<ElementOf<TIterIn>>;
+  /** Materializes the iterable for side-effects.  Helpful if you just wanna `tap` that. */
+  exec(): void;
 }
 
 interface ChainingFn {

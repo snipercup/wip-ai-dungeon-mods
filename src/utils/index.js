@@ -320,7 +320,8 @@ module.exports.chain = module.exports.dew(() => {
       tap: (tapFn) => chain(tapIter(iterable, tapFn)),
       /** @param {TransformFn<any, any>} [xformFn] */
       value: (xformFn) => xformFn ? xformFn(iterable) : iterable,
-      toArray: () => [...iterable]
+      toArray: () => [...iterable],
+      exec: () => { for (const _ of iterable); }
     };
     return result;
   };

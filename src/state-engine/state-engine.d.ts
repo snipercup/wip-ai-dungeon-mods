@@ -182,6 +182,20 @@ interface StateDataCache {
   forHistory: Record<number, StateEngineCacheData>;
 };
 
+/** A generic interface for sortable things. */
+interface SortableEntry {
+  text?: string;
+  key?: StateEngineData["key"];
+  relations?: StateEngineData["relations"];
+  priority?: StateEngineCacheData["priority"];
+  score?: StateEngineCacheData["score"];
+}
+
+/** An interface describing the sorting position of an entry. */
+interface WithOrdering {
+  order: number;
+}
+
 declare interface GameState {
   /**
    * A cache of pre-processed `StateEngineData` entries.

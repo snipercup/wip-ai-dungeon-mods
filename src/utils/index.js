@@ -311,6 +311,7 @@ module.exports.chain = module.exports.dew(() => {
     iterable = iterable ?? [];
     /** @type {ChainComposition<any>} */
     const result = {
+      // @ts-ignore - Fitting an overloaded method; TS can't handle it.
       map: (transformFn) => chain(mapIter(iterable, transformFn)),
       flatten: () => chain(flatten(iterable)),
       // @ts-ignore - Fitting an overloaded method; TS can't handle it.

@@ -1,4 +1,5 @@
 type TransformFn<TIn, TOut> = (value: TIn) => TOut;
+type TupleTransformFn<TIn, TOut extends unknown> = (value: TIn) => [...TOut];
 type PredicateFn<T> = (value: T) => boolean;
 type TypeGuardPredicateFn<T, U> = (value: T) => value is U;
 type TapFn<TValue> = (value: TValue) => unknown;
@@ -13,6 +14,8 @@ type Flattenable<T>
 type FlatElementOf<T> = T extends Iterable<infer TEl> ? Flattenable<TEl> : never;
 
 interface ChainComposition<TIterIn extends Iterable<any>> {
+  /** Transforms each element into a tuple. */
+  map<TOut>(xformFn: TupleTransformFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
   /** Transforms each element. */
   map<TOut>(xformFn: TransformFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
   /** Flattens an iterable of iterables by one level. */

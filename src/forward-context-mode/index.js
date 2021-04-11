@@ -4,36 +4,21 @@ const { dew, getText } = require("../utils");
 const { chain, iterReverse, iterPosition, limitText } = require("../utils");
 const { getClosestCache, getStateEngineData, buildHistoryData } = require("../context-mode/utils");
 const { cleanText, sumOfUsed, joinedLength } = require("../context-mode/utils");
+const { entrySorter } = require("../state-engine/entrySorting");
 
 const MAX_MEMORY_FACTOR = 1/3;
 const NOTES = "Reader's Notes:";
 const BREAK = "--------";
 
 /**
- * Sorts by: `priority` descending then `score` descending.  This means things with
- * a priority will be emitted before things without a priority.
- * 
- * @param {ForwardEntry} a 
- * @param {ForwardEntry} b
- * @returns {number}
- */
-const noteSorter = (a, b) => {
-  if (a.priority === b.priority) return b.score - a.score;
-  // At least one of these is not null, since `null === null` would have been `true`.
-  if (b.priority == null) return -1;
-  if (a.priority == null) return 1;
-  return b.priority - a.priority;
-};
-
-/**
  * @param {Iterable<ForwardEntry>} theNotes
  * @returns {Iterable<string>}
  */
-const sortPrioritized = (theNotes) => {
-  const sortedNotes = [...theNotes].sort((a, b) => noteSorter(a, b));
-  return sortedNotes
+const sortNaturally = (theNotes) => {
+  return chain(entrySorter(theNotes))
     .map((ad) => ad.text.trim())
-    .filter((text) => Boolean(text));
+    .filter(Boolean)
+    .value();
 };
 
 /** @type {BundledModifierFn} */
@@ -94,7 +79,7 @@ const contextModifier = (data) => {
   // trim things down.
   const notesText = dew(() => {
     return chain(theNotes)
-      .thru(sortPrioritized)
+      .thru(sortNaturally)
       .map((text) => `• ${text}`)
       .thru((sortedNotes) => limitText(
         // Have to account for the new lines for `styleLines` and `NOTES`.

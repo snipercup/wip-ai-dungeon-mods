@@ -5,6 +5,7 @@ const { chain, iterReverse, limitText } = require("../utils");
 const { getClosestCache, getStateEngineData, buildHistoryData } = require("../context-mode/utils");
 const { cleanText, usedLength, sumOfUsed, joinedLength } = require("../context-mode/utils");
 const { entrySorter } = require("../state-engine/entrySorting");
+const { entrySelector } = require("../state-engine/entrySelection");
 
 const MAX_MEMORY_FACTOR = 1/3;
 const STYLE = "Style:";
@@ -14,17 +15,6 @@ const STORY = "Story:";
 const EXCERPT = "Excerpt:";
 
 const reStorySoFar = /^The story so far:\s+((?:.|\s)*?)$/i;
-
-/**
- * @param {Iterable<AnnotatedEntry>} theNotes
- * @returns {Iterable<string>}
- */
-const sortNaturally = (theNotes) => {
-  return chain(entrySorter(theNotes))
-    .map((ad) => ad.text.trim())
-    .filter(Boolean)
-    .value();
-};
 
 /** @type {BundledModifierFn} */
 const contextModifier = (data) => {
@@ -96,19 +86,17 @@ const contextModifier = (data) => {
   // trim things down.
   const notesText = dew(() => {
     return chain(theNotes)
-      .thru(sortNaturally)
-      .map((text) => `• ${text}`)
-      .thru((sortedNotes) => limitText(
+      .thru(entrySorter)
+      .thru((notes) => entrySelector(
+        notes,
         // Have to account for the new lines for `styleLines` and `NOTES`.
         // @ts-ignore - Not typing the `reduce` correctly.
         maxMemory - [styleLength, NOTES].reduce(sumOfUsed(), 0),
-        sortedNotes,
-        {
-          // Here we account for the new line separating each note.
-          lengthGetter: (text) => text.length + 1,
-          permissive: true
-        }
+        { lengthGetter: ({ text }) => text.length + 1 }
       ))
+      .map((note) => note.text.trim())
+      .filter(Boolean)
+      .map((text) => `• ${text}`)
       .value((limitedNotes) => {
         const result = [...limitedNotes];
         if (result.length === 0) return [];
@@ -128,10 +116,10 @@ const contextModifier = (data) => {
       .map((s) => s.trim())
       .filter(Boolean)
       .thru((storyText) => limitText(
+        storyText,
         // Have to account for the new lines...
         // @ts-ignore - Not typing the `reduce` correctly.
         maxChars - [styleLength, summaryLength, notesLength, tagText].reduce(sumOfUsed(), 0),
-        storyText,
         {
           // Here we account for the new line separating each line of the story.
           lengthGetter: (text) => text ? text.length + 1 : 0

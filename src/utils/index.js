@@ -385,22 +385,22 @@ const getLength = (value) => module.exports.getText(value).length;
  * 
  * Does not yield empty strings and skips nullish values.
  * 
- * @template TValue
+ * @template {Iterable<any>} TIter
+ * @param {TIter} textIterable
+ * The iterable to yield from.
  * @param {number} maxLength
  * The maximum amount of text to yield.
- * @param {Iterable<TValue>} textIterable
- * The iterable to yield from.
  * @param {Object} [options]
- * @param {(value: TValue) => number} [options.lengthGetter]
+ * @param {(value: ElementOf<TIter>) => number} [options.lengthGetter]
  * A transformation function to obtain a length from the value.  By default, it will
  * attempt to convert it with `getText` and produce the length of the result.  Since
  * this function return `""` if it can't find any text, it will not yield those values.
  * @param {boolean} [options.permissive=false]
  * If set to `true`, text that exceeds the length will only be skipped, allowing the
  * search for a shorter string to be included instead.
- * @returns {Iterable<TValue>}
+ * @returns {Iterable<ElementOf<TIter>>}
  */
-module.exports.limitText = function* (maxLength, textIterable, options) {
+module.exports.limitText = function* (textIterable, maxLength, options) {
   const { lengthGetter = getLength, permissive = false } = options ?? {};
   const textIterator = textIterable[Symbol.iterator]();
   let lengthRemaining = maxLength;

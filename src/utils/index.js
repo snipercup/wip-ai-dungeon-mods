@@ -52,7 +52,8 @@ module.exports.tuple3 = (a, b, c) => [a, b, c];
  * @param {any} value 
  * @returns {value is Iterable<any>}
  */
-module.exports.hasIterator = (value) => Symbol.iterator in value;
+module.exports.hasIterator = (value) =>
+  value != null && typeof value === "object" && Symbol.iterator in value;
 
 /**
  * Creates an object from key-value-pairs.

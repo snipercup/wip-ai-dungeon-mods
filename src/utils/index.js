@@ -289,23 +289,40 @@ module.exports.interweave = function* (value, iterable) {
  * Calls the given function on each element of `iterable` and yields the
  * values, unchanged.
  * 
- * @template TValue
- * @template {Iterable<TValue>} TIter
+ * @template {Iterable<any>} TIter
  * @param {TIter} iterable 
- * @param {TapFn<TValue>} tapFn
- * @returns {Iterable<TValue>}
+ * @param {TapFn<ElementOf<TIter>>} tapFn
+ * @returns {Iterable<ElementOf<TIter>>}
  */
-module.exports.tapIter = function* (iterable, tapFn) {
-  const clone = [...iterable];
-  for (const value of clone) {
+module.exports.tapEach = function* (iterable, tapFn) {
+  // Clone an array in case the reference may be mutated by the `tapFn`.
+  const safedIterable = Array.isArray(iterable) ? [...iterable] : iterable;
+  for (const value of safedIterable) {
     tapFn(value);
     yield value;
   }
 };
 
+/**
+ * Calls the given function on an array materialized from `iterable` and
+ * yields the same values, unchanged.
+ * 
+ * @template {Iterable<any>} TIter
+ * @param {TIter} iterable 
+ * @param {TapFn<Array<ElementOf<TIter>>>} tapFn
+ * @returns {Iterable<ElementOf<TIter>>}
+ */
+ module.exports.tapAll = function* (iterable, tapFn) {
+  // Materialize the iterable; we can't provide an iterable that is
+  // currently being iterated.
+  const materialized = [...iterable];
+  tapFn(materialized);
+  yield* materialized;
+};
+
 /** @type {ChainingFn} */
 module.exports.chain = module.exports.dew(() => {
-  const { mapIter, filterIter, concat, tapIter, flatten } = module.exports;
+  const { mapIter, filterIter, concat, tapEach, tapAll, flatten } = module.exports;
   // @ts-ignore - Should be checked.
   const chain = (iterable) => {
     iterable = iterable ?? [];
@@ -318,7 +335,8 @@ module.exports.chain = module.exports.dew(() => {
       filter: (predicateFn) => chain(filterIter(iterable, predicateFn)),
       concat: (...others) => chain(concat(iterable, ...others)),
       thru: (transformFn) => chain(transformFn(iterable)),
-      tap: (tapFn) => chain(tapIter(iterable, tapFn)),
+      tap: (tapFn) => chain(tapEach(iterable, tapFn)),
+      tapAll: (tapFn) => chain(tapAll(iterable, tapFn)),
       /** @param {TransformFn<any, any>} [xformFn] */
       value: (xformFn) => xformFn ? xformFn(iterable) : iterable,
       toArray: () => [...iterable],

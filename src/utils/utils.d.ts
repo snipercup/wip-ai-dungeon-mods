@@ -1,11 +1,11 @@
+type Chainable<TEl, TIter extends Iterable<TEl>> = TIter;
+type ElementOf<T> = T extends Iterable<infer TEl> ? TEl : never;
+
 type TransformFn<TIn, TOut> = (value: TIn) => TOut;
 type TupleTransformFn<TIn, TOut extends unknown> = (value: TIn) => [...TOut];
 type PredicateFn<T> = (value: T) => boolean;
 type TypeGuardPredicateFn<T, U> = (value: T) => value is U;
 type TapFn<TValue> = (value: TValue) => unknown;
-
-type Chainable<TEl, TIter extends Iterable<TEl>> = TIter;
-type ElementOf<T> = T extends Iterable<infer TEl> ? TEl : never;
 
 type Flattenable<T>
   = T extends string ? string
@@ -30,8 +30,10 @@ interface ChainComposition<TIterIn extends Iterable<any>> {
   concat<TEl>(...others: (TEl | Iterable<TEl>)[]): ChainComposition<Iterable<ElementOf<TIterIn> | TEl>>;
   /** Transforms the iterable into a different iterable. */
   thru<TIterOut extends Iterable<any>>(xformFn: TransformFn<TIterIn, TIterOut>): ChainComposition<TIterOut>;
-  /** Calls the given function with each value, but does not alter the iterable. */
+  /** Calls the given function with each value, but yields the values unchanged. */
   tap(tapFn: TapFn<ElementOf<TIterIn>>): ChainComposition<Iterable<ElementOf<TIterIn>>>;
+  /** Calls the given function on a materialized array of the iterable, then yields the original values, unchanged. */
+  tapAll(tapFn: TapFn<Array<ElementOf<TIterIn>>>): ChainComposition<Iterable<ElementOf<TIterIn>>>;
   /** Transforms the iterable into any kind of value, ending the chain. */
   value<TOut>(xformFn: TransformFn<TIterIn, TOut>): TOut;
   /** Ends the chain and produces the resulting iterable. */

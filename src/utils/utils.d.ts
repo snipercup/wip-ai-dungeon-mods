@@ -1,6 +1,6 @@
 type TransformFn<TIn, TOut> = (value: TIn) => TOut;
 type PredicateFn<T> = (value: T) => boolean;
-type TypeGuardPredicateFn<T, U> = (value: T | U) => value is U;
+type TypeGuardPredicateFn<T, U> = (value: T) => value is U;
 type TapFn<TValue> = (value: TValue) => unknown;
 
 type Chainable<TEl, TIter extends Iterable<TEl>> = TIter;

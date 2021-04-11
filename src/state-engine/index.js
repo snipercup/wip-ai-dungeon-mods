@@ -36,15 +36,19 @@ module.exports.inputModifier = (...stateModules) => {
 
 /**
  * @param {Record<string, WorldInfoEntry>} worldInfoMap 
- * @param {Iterable<[string | number, StateEngineCacheData | null]>} entries
+ * @param {Record<string, StateEngineData>} stateDataCache
+ * @param {Iterable<[string, StateEngineCacheData | null]>} entries
  */
-const reportOn = function* (worldInfoMap, entries) {
+const reportOn = function* (worldInfoMap, stateDataCache, entries) {
   for (const [location, entry] of entries) {
     if (!entry) continue;
     const info = worldInfoMap[entry.infoId];
     if (!info) continue;
-    const snipette = info.entry.split(" ").filter(Boolean).slice(0, 5).join(" ");
-    yield `${location}: ${info.keys} -- ${snipette}`;
+    const data = stateDataCache[entry.infoId];
+    if (!data) continue;
+    const score = entry.score.toFixed(2);
+    const snipette = info.entry.split(" ").filter(Boolean).slice(0, 10).join(" ");
+    yield `${data.key} (${score}) @ ${location}\n\t${snipette}`;
   }
 };
 
@@ -56,14 +60,15 @@ const commandPatterns = [
     const { storage } = turnCache.forRead(data, "StateEngine.association", { loose: true });
     if (!storage) return "No State-Engine data is available.";
 
+    const { $$stateDataCache = {} } = data.state;
     const worldInfoMap = fromPairs(data.worldEntries.map((wi) => tuple2(wi.id, wi)));
 
     return chain()
-      .concat(storage.forContextMemory.map((v) => tuple2("CMEM", v)))
-      .concat(toPairs(storage.forHistory))
-      .concat([tuple2("AUTH", storage.forAuthorsNote)])
-      .concat([tuple2("FMEM", storage.forFrontMemory)])
-      .thru((entries) => reportOn(worldInfoMap, entries))
+      .concat(storage.forContextMemory.map((v) => tuple2("Context Memory", v)))
+      .concat(chain(toPairs(storage.forHistory)).map(([loc, entry]) => [`History ${loc}`, entry]).value())
+      .concat([tuple2("Author's Note", storage.forAuthorsNote)])
+      .concat([tuple2("Front Memory", storage.forFrontMemory)])
+      .thru((entries) => reportOn(worldInfoMap, $$stateDataCache, entries))
       .toArray()
       .join("\n");
   }],

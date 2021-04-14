@@ -15,7 +15,13 @@ pipeline.commandHandler.addCommand(new SimpleCommand(
   (data, [name]) => {
     if (name in globalThis) {
       // @ts-ignore - We checked, dammit!
-      console.log(globalThis[name]);
+      const target = globalThis[name];
+      
+      // Dump the structure.
+      console.log(target);
+      // And the names of any own-properties it may have.
+      // I wanna make sure they're not just attaching new methods to existing objects.
+      console.log(Object.keys(target));
       return `Global variable \`${name}\` dumped to logs.`;
     }
     return `The global variable \`${name}\` did not exist.`

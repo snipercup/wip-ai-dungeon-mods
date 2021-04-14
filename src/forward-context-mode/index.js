@@ -59,7 +59,7 @@ const contextModifier = (data) => {
       .concat(dew(() => {
         if (!playerMemory) return [];
         return cleanText(playerMemory)
-          .map((text, i) => ({ text, priority: (i + 1000) * -1, score: 10 }));
+          .map((text, i) => ({ text, priority: (i + 1000) * -1, score: 40 }));
       }))
       .value();
   });

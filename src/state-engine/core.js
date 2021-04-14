@@ -675,7 +675,8 @@ const superHappyRouletteTime = (data) => {
 };
 
 const produceContextMemory = dew(() => {
-  const { foldLines } = require("../utils");
+  const { entrySorter } = require("./entrySorting");
+  const { entrySelector } = require("./entrySelection");
 
   /**
    * @param {StateEngineEntry["infoId"]} id 
@@ -684,49 +685,48 @@ const produceContextMemory = dew(() => {
   const getEntryText = (id) => getText(currentEntriesMap[id]);
 
   /**
+   * Yields lines from the player memory, ignoring lines starting with a `#` symbol.
+   * Currently, they just jam the summary into the player-defined memory with a comment
+   * warning you not to screw things up.
+   * 
    * @param {string} playerMemory
-   * @param {StateDataCache} cacheData
-   * @returns {{ heading: string[], filler: string[], priority: string[] }}
+   * @returns {Iterable<SortableEntry & { text: string }>}
    */
-  const getMemoryParts = (playerMemory, cacheData) => {
-    // Start with the stuff meant for the context memory.
-    const heading = [
-      // Trim out the new summary, if present.
-      ...getText(playerMemory).split("\n").map((s) => s.trim()).filter((s) => !s.startsWith("#")),
-      // Dump the context memory entries in there.
-      ...cacheData.forContextMemory.map(({ infoId }) => getEntryText(infoId))
-    ];
-    
-    // Throw all the history stuff into a roulette again.
-    /** @type {Roulette<string>} */
-    const roulette = new Roulette();
-    for (const [, data] of toPairs(cacheData.forHistory)) {
-      const text = getEntryText(data.infoId);
-      if (!text) continue;
-      roulette.push(data.score, text);
+  const convertPlayerMemory = function* (playerMemory) {
+    const lines = getText(playerMemory).split("\n");
+    for (let i = 0, lim = lines.length; i < lim; i++) {
+      const text = lines[i].trim();
+      if (text.startsWith("#")) continue;
+      yield { text, priority: (i + 1000) * -1, score: 100 };
     }
-    
-    // Convert to an array; the highest scoring will generally come first.
-    const entryTexts = [...mapIter(spinToWin(roulette), ([text]) => text)];
-
-    // The first two will be treated as priority inserts.
-    const priority = entryTexts.slice(0, 2);
-    // The rest will be filler texts.
-    const filler = entryTexts.slice(2);
-
-    return { heading, filler, priority };
   };
 
   /**
    * @param {string} playerMemory
+   * The player memory.  May contain the summary portion if With-Memory is not running.
+   * @param {string | undefined} summary
+   * If With-Memory is running, the extracted summary.
    * @param {StateDataCache} cacheData
+   * The current-turn State Engine cache data.
    * @returns {string}
    */
-  const produceContextMemory = (playerMemory, cacheData) => {
-    const { heading, filler, priority } = getMemoryParts(playerMemory, cacheData);
-    return foldLines(1000, heading, filler, priority)
-      .map((text) => text.trim())
+  const produceContextMemory = (playerMemory, summary, cacheData) => {
+    const forContext = cacheData?.forContextMemory ?? [];
+    const forHistory = cacheData?.forHistory ? Object.values(cacheData.forHistory) : [];
+    const resolvedSummary = summary ?? "";
+
+    return chain()
+      .concat(forContext, forHistory)
+      .map((entry) => ({ ...entry, text: getEntryText(entry.infoId)}))
+      .concat(convertPlayerMemory(playerMemory))
+      .thru(entrySorter)
+      .thru((notes) => entrySelector(notes, 1001 - resolvedSummary.length, {
+        lengthGetter: ({ text }) => text.length + 1
+      }))
+      .map((note) => note.text.trim())
+      .concat(resolvedSummary)
       .filter(Boolean)
+      .toArray()
       .join("\n");
   };
 
@@ -734,18 +734,20 @@ const produceContextMemory = dew(() => {
 });
 
 /**
- * Applies the roulette one more time, removing entries until they can fit into
- * the available context memory.  All the data we selected is in the turn cache
- * for later; this step is just to help with the edit distance restrictions and
- * make this functional without any other supporting plugins.
+ * Uses the natural sorting utiltiies to select entries for display in the memory.
+ * Also inserts the Author's Note and Front Memory.
+ * 
+ * All the data we selected is in the turn cache for later; this step is just to
+ * help with the edit distance restrictions and make this functional without any
+ * other supporting plugins.
  * 
  * @type {BundledModifierFn}
  */
-const loadUpMemory = ({ state: { memory }, playerMemory }) => {
+const loadUpMemory = ({ state: { memory }, playerMemory, summary }) => {
   const cacheData = theCache.storage;
   if (!cacheData) return;
 
-  const newContextMem = produceContextMemory(playerMemory, cacheData);
+  const newContextMem = produceContextMemory(playerMemory, summary, cacheData);
   if (newContextMem) memory.context = newContextMem;
   
   // Only set these if it is not already set by something else.

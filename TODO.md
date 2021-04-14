@@ -6,6 +6,20 @@ flows through the various functions.  If we pull those out, we can place more of
 these tiny functions into their own modules, which will make maintenance a little
 easier, as we don't have to scroll around as much.
 
+## State Engine Entry Constructors
+Make it possible to override the default World Info parser and build enteries as
+that particular entry type sees fit.  This would make it possible for entries
+to produce their own internal configuration formats for `WorldInfo.keys`, as well
+as maybe even enable dynamic entries.
+
+## Total Recall
+A dynamic State Engine entry that back-references something in the history.  This
+is a feature of the vanilla context.  Might be cool to see what could be done with
+the concept.
+
+Would require enhancing State Engine with the ability to dynamically produce its
+text, rather than using the World Info exclusively.
+
 ## Dynamic Author
 Uses `$Style` and `$Theme` states to help guide the AI's writing.
 

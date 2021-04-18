@@ -135,5 +135,5 @@ class MatchableEntry {
   }
 }
 
-module.exports.MatchableEntry = MatchableEntry;
-module.exports.memoizedCounter = memoizedCounter;
+exports.MatchableEntry = MatchableEntry;
+exports.memoizedCounter = memoizedCounter;

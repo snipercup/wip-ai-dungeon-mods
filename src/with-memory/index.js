@@ -67,7 +67,7 @@ const extractMemory = (data) => {
  * 
  * @type {BundledModifierFn}
  */
- module.exports.inputModifier = (data) => {
+ exports.inputModifier = (data) => {
   if (!data.useAI) return;
   delete data.state.$$reportSummaryInOutputModifier;
 
@@ -97,7 +97,7 @@ const extractMemory = (data) => {
  * 
  * @type {BundledModifierFn}
  */
-module.exports.contextModifier = (data) => {
+exports.contextModifier = (data) => {
   if (!data.useAI) return;
 
   const { playerMemory } = extractMemory(data);
@@ -114,9 +114,9 @@ module.exports.contextModifier = (data) => {
  * 
  * @type {BundledModifierFn}
  */
-module.exports.outputModifier = (data) => {
+exports.outputModifier = (data) => {
   if (!data.useAI) return;
-  module.exports.contextModifier(data);
+  exports.contextModifier(data);
 
   const { $$reportSummaryInOutputModifier, $$latestSummary } = data.state;
   if ($$reportSummaryInOutputModifier && !data.message)
@@ -128,7 +128,7 @@ module.exports.outputModifier = (data) => {
 const isYes = ["on", "1", "true", "yes"];
 const isNo = ["off", "0", "false", "no"];
 
-module.exports.commands = [
+exports.commands = [
   new SimpleCommand("report-summary-updates", (data, [arg]) => {
     if (!arg) {
       const currentState = data.state.$$reportSummary ? "reporting" : "not reporting";
@@ -177,13 +177,13 @@ module.exports.commands = [
  * 
  * @param {import("aid-bundler").Pipeline} pipeline
  */
-module.exports.addPlugin = (pipeline) => {
-  for (const cmd of module.exports.commands)
+exports.addPlugin = (pipeline) => {
+  for (const cmd of exports.commands)
     pipeline.commandHandler.addCommand(cmd);
 
   pipeline.addPlugin(new Plugin("With-Memory",
-    module.exports.inputModifier,
-    module.exports.contextModifier,
-    module.exports.outputModifier
+    exports.inputModifier,
+    exports.contextModifier,
+    exports.outputModifier
   ));
 };

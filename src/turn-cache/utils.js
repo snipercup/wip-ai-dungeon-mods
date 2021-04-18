@@ -35,7 +35,7 @@ const { chain, toPairs, fromPairs, tuple2 } = require("../utils");
  * @param {boolean} loose 
  * @returns {[number, CachableType | undefined]}
  */
-module.exports.getFromStorage = (localStorage, actionCount, loose) => {
+exports.getFromStorage = (localStorage, actionCount, loose) => {
   if (localStorage == null)
     return tuple2(actionCount, undefined);
   if (!loose)
@@ -50,8 +50,8 @@ module.exports.getFromStorage = (localStorage, actionCount, loose) => {
  * @param {boolean} loose 
  * @returns {[number, any]}
  */
-module.exports.cloneFromStorage = (localStorage, actionCount, loose) => {
-  const original = module.exports.getFromStorage(localStorage, actionCount, loose);
+exports.cloneFromStorage = (localStorage, actionCount, loose) => {
+  const original = exports.getFromStorage(localStorage, actionCount, loose);
   if (original[1] == null) return original;
 
   const [turn, storage] = original;
@@ -67,7 +67,7 @@ module.exports.cloneFromStorage = (localStorage, actionCount, loose) => {
  * @param {number} storageSize
  * @returns {TurnCacheData<any>}
  */
-module.exports.cleanCache = (localStorage, actionCount, storageSize) => {
+exports.cleanCache = (localStorage, actionCount, storageSize) => {
   const entryKVPs = Object.keys(localStorage)
     .map(Number)
     .filter((v) => !Number.isNaN(v))

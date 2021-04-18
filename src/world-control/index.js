@@ -23,7 +23,7 @@ const { MatchCommand } = require("../commands");
  * 
  * @type {BundledModifierFn}
  */
-module.exports.outputModifier = (data) => {
+exports.outputModifier = (data) => {
   if (data.state.$$worldInfoVisibility) return;
   /** @type {Exclude<GameState["$$worldInfoVisibility"], undefined>} */
   const visibilitySet = {};
@@ -125,7 +125,7 @@ const commandPatterns = [
   // Debug command; rebuilds the set of world-info entries based on the current state.
   ["rebuild", (data) => {
     delete data.state.$$worldInfoVisibility;
-    module.exports.outputModifier(data);
+    exports.outputModifier(data);
     return "Rebuilt set of scenario world-info entries.";
   }],
   // Debug command; clears the storage of which world-info entries were hidden at scenario start.
@@ -135,7 +135,7 @@ const commandPatterns = [
   }]
 ];
 
-module.exports.commands = [
+exports.commands = [
   new MatchCommand("world-control", new Map(commandPatterns))
 ];
 
@@ -144,13 +144,13 @@ module.exports.commands = [
  * 
  * @param {import("aid-bundler").Pipeline} pipeline
  */
-module.exports.addPlugin = (pipeline) => {
-  for (const cmd of module.exports.commands)
+exports.addPlugin = (pipeline) => {
+  for (const cmd of exports.commands)
     pipeline.commandHandler.addCommand(cmd);
 
   pipeline.addPlugin(new Plugin("World Control",
     undefined,
     undefined,
-    module.exports.outputModifier
+    exports.outputModifier
   ));
 };

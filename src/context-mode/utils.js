@@ -13,7 +13,7 @@ const turnCache = require("../turn-cache");
  * @param {import("aid-bundler/src/aidData").AIDData} aidData
  * @returns {Maybe<StateDataCache>}
  */
-module.exports.getClosestCache = (aidData) => {
+exports.getClosestCache = (aidData) => {
   /** @type {import("../turn-cache").ReadCache<StateDataCache>} */
   const theCache = turnCache.forRead(aidData, "StateEngine.association", { loose: true });
   const { actionCount } = aidData;
@@ -42,7 +42,7 @@ module.exports.getClosestCache = (aidData) => {
  * @param {Maybe<StateEngineCacheData>} assocData
  * @returns {Maybe<ContextData>}
  */
-module.exports.getStateEngineData = (aidData, assocData) => {
+exports.getStateEngineData = (aidData, assocData) => {
   if (assocData == null) return undefined;
 
   // Does the cache exist?
@@ -72,7 +72,7 @@ module.exports.getStateEngineData = (aidData, assocData) => {
  * @param {Maybe<string>} text 
  * @returns {string[]}
  */
-module.exports.cleanText = (text) => {
+exports.cleanText = (text) => {
   if (!text) return [];
 
   return text.split("\n")
@@ -94,7 +94,7 @@ const reNewLine = /^\s*?\n/;
  */
 const createHistoryData = (offset, sources, totalLength, textParts) => {
   if (textParts.length === 0 || sources.size === 0) return undefined;
-  const text = module.exports.cleanText(textParts.join("")).join("\n");
+  const text = exports.cleanText(textParts.join("")).join("\n");
   if (!text) return undefined;
 
   // We can preserve the type if only one type is in the whole batch.
@@ -117,7 +117,7 @@ const createHistoryData = (offset, sources, totalLength, textParts) => {
  * @param {import("aid-bundler/src/aidData").AIDData} aidData
  * @returns {Iterable<HistoryData>}
  */
-module.exports.buildHistoryData = function* (aidData) {
+exports.buildHistoryData = function* (aidData) {
   let nextYield = 0;
   let curOffset = 0;
   /** @type {HistoryData["sources"]} */
@@ -161,7 +161,7 @@ module.exports.buildHistoryData = function* (aidData) {
  * The string that will be used to join them; defaults to `"\n"`.
  * @returns {number}
  */
-module.exports.usedLength = (value, joiner = "\n") => {
+exports.usedLength = (value, joiner = "\n") => {
   const length = typeof value === "string" ? value.length : value;
   return length > 0 ? length + joiner.length : 0;
 };
@@ -175,8 +175,8 @@ module.exports.usedLength = (value, joiner = "\n") => {
  * The string that will be used to join them; defaults to `"\n"`.
  * @returns {(acc: number, next: string | number) => number}
  */
-module.exports.sumOfUsed = (joiner = "\n") => (acc, next) =>
-  acc + module.exports.usedLength(next, joiner);
+exports.sumOfUsed = (joiner = "\n") => (acc, next) =>
+  acc + exports.usedLength(next, joiner);
 
 /**
  * Gets the length of an iterable of strings, as if joined together with `joiner`.
@@ -187,7 +187,7 @@ module.exports.sumOfUsed = (joiner = "\n") => (acc, next) =>
  * The string that will be used to join them; defaults to `"\n"`.
  * @returns {number}
  */
-module.exports.joinedLength = (value, joiner = "\n") => {
+exports.joinedLength = (value, joiner = "\n") => {
   if (typeof value === "string") return value.length;
   let count = 0;
   let totalLength = 0;

@@ -72,5 +72,5 @@ class MatchCommand extends Command {
   }
 }
 
-module.exports.SimpleCommand = SimpleCommand;
-module.exports.MatchCommand = MatchCommand;
+exports.SimpleCommand = SimpleCommand;
+exports.MatchCommand = MatchCommand;

@@ -370,6 +370,6 @@ const init = (data) => {
   addStateEntry(StateEntry);
 };
 
-module.exports.stateModule = {
+exports.stateModule = {
   pre: [init]
 };

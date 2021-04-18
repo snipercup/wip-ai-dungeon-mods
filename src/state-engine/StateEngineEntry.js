@@ -4,7 +4,7 @@ const { isParamsFor, isParamsTextable } = require("../state-engine/utils");
 const { MatchableEntry } = require("./MatchableEntry");
 
 /** Common regular expressions for parsing state entry definitions. */
-module.exports.regex = {
+exports.regex = {
   /**
    * Parses an info entry into its type and the info declaration:
    * - "$Location" => `["Location", undefined]`
@@ -49,9 +49,9 @@ module.exports.regex = {
  * @param {WorldInfoEntry} worldInfo
  * @returns {string | undefined}
  */
-module.exports.extractType = (worldInfo) => {
+exports.extractType = (worldInfo) => {
   // @ts-ignore - TS too dumb with `??` and `[]`.
-  const [, type] = module.exports.regex.infoEntry.exec(worldInfo.keys) ?? [];
+  const [, type] = exports.regex.infoEntry.exec(worldInfo.keys) ?? [];
   return type;
 };
 
@@ -63,7 +63,7 @@ module.exports.extractType = (worldInfo) => {
  * @param {RegExp} reMatcher
  * @returns {string[]}
  */
-module.exports.parseKeywords = (keywords, reMatcher) => {
+exports.parseKeywords = (keywords, reMatcher) => {
   /** @type {string[]} */
   const matches = [];
   if (!keywords || !keywords.length) return matches;
@@ -85,11 +85,11 @@ module.exports.parseKeywords = (keywords, reMatcher) => {
  * @param {WorldInfoEntry["keys"]} infoKey
  * @returns {StateEngineData | undefined}
  */
-module.exports.infoKeyParserImpl = (infoId, infoKey) => {
+exports.infoKeyParserImpl = (infoId, infoKey) => {
   const {
     infoEntry, infoDeclaration, infoFullKey,
     includedKeyword, excludedKeyword
-  } = module.exports.regex;
+  } = exports.regex;
 
   const [, type, dec] = infoEntry.exec(infoKey) ?? [];
   if (!type) return undefined;
@@ -101,8 +101,8 @@ module.exports.infoKeyParserImpl = (infoId, infoKey) => {
   const relations = relationPart?.split("&").map(s => s.trim()).filter(Boolean) ?? [];
   // Keyword part parsing.
   const keywords = keywordPart?.split(";").map(s => s.trim()).filter(Boolean) ?? [];
-  const include = module.exports.parseKeywords(keywords, includedKeyword);
-  const exclude = module.exports.parseKeywords(keywords, excludedKeyword);
+  const include = exports.parseKeywords(keywords, includedKeyword);
+  const exclude = exports.parseKeywords(keywords, excludedKeyword);
 
   return { infoId, infoKey, type, key, relations, include, exclude };
 };
@@ -121,7 +121,7 @@ module.exports.infoKeyParserImpl = (infoId, infoKey) => {
  * @param {number} [end]
  * @returns {Iterable<string>}
  */
-module.exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
+exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
   // Make sure we don't go beyond the available history.
   end = Math.min(end, entryCount);
   let index = Math.max(start, 0);
@@ -137,7 +137,7 @@ module.exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
  * @param {MatchableEntry} matcher
  * @param {string} text
  */
-module.exports.checkKeywords = (matcher, text) => {
+exports.checkKeywords = (matcher, text) => {
   if (!text) return false;
   if (matcher.hasExcludedWords(text)) return false;
   if (!matcher.hasIncludedWords(text)) return false;
@@ -232,7 +232,7 @@ class StateEngineEntry {
         "Keywords should be separated by a semi-colon (;), instead."
       ].join("  "));
 
-    const parsedResult = module.exports.infoKeyParserImpl(id, keys);
+    const parsedResult = exports.infoKeyParserImpl(id, keys);
     if (!parsedResult)
       throw new BadStateEntryError(
         `Failed to parse World Info entry as a \`${this.type}\`.`
@@ -311,7 +311,7 @@ class StateEngineEntry {
     const text = getText(params.entry).trim();
 
     // Check keywords.
-    if (!module.exports.checkKeywords(matcher, text)) return false; 
+    if (!exports.checkKeywords(matcher, text)) return false; 
 
     // We're done if we can't process relations.
     if (!isParamsFor("history", params)) return true;
@@ -321,7 +321,7 @@ class StateEngineEntry {
     // for matching references.
     const validForRelations = dew(() => {
       if (this.relations.size === 0) return true;
-      const allUsedKeys = new Set(module.exports.iterUsedKeys(usedKeys, source));
+      const allUsedKeys = new Set(exports.iterUsedKeys(usedKeys, source));
       for (const key of this.relations)
         if (!allUsedKeys.has(key)) return false;
       return true;
@@ -451,5 +451,5 @@ class StateEngineEntry {
   }
 }
 
-module.exports.StateEngineEntry = StateEngineEntry;
-module.exports.BadStateEntryError = BadStateEntryError;
+exports.StateEngineEntry = StateEngineEntry;
+exports.BadStateEntryError = BadStateEntryError;

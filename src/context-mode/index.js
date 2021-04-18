@@ -10,7 +10,7 @@ const registeredModules = new Map();
  * @param {"input" | "context" | "output"} modifierKey
  * @returns {BundledModifierFn}
  */
-module.exports.makeModifier = (modifierKey) => (data) => {
+exports.makeModifier = (modifierKey) => (data) => {
   const { useAI, state } = data;
   if (!useAI) return;
 
@@ -64,7 +64,7 @@ const commandPatterns = [
   }]
 ];
 
-module.exports.commands = [
+exports.commands = [
   new MatchCommand("context-mode", new Map(commandPatterns))
 ];
 
@@ -76,7 +76,7 @@ module.exports.commands = [
  * @param {...ContextModeModule} contextModeModules
  * The context-mode modules to enable.
  */
-module.exports.addPlugin = (pipeline, ...contextModeModules) => {
+exports.addPlugin = (pipeline, ...contextModeModules) => {
   // No reason to even bother if there's no modules to use.
   if (contextModeModules.length === 0) return;
 
@@ -91,12 +91,12 @@ module.exports.addPlugin = (pipeline, ...contextModeModules) => {
     registeredModules.set(fixedName, module);
   }
 
-  for (const cmd of module.exports.commands)
+  for (const cmd of exports.commands)
     pipeline.commandHandler.addCommand(cmd);
 
   pipeline.addPlugin(new Plugin("Context-Mode",
-    module.exports.makeModifier("input"),
-    module.exports.makeModifier("context"),
-    module.exports.makeModifier("output"),
+    exports.makeModifier("input"),
+    exports.makeModifier("context"),
+    exports.makeModifier("output"),
   ));
 };

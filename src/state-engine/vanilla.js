@@ -51,6 +51,6 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
 };
 
 /** @type {StateModule} */
-module.exports.stateModule = {
+exports.stateModule = {
   pre: [init]
 };

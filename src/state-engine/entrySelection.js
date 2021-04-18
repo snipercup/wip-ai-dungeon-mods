@@ -30,7 +30,7 @@ const defaultLengthGetter = ({ text }) => text ? text.length + 1 : 0;
  * @param {(entry: ElementOf<TEntries>) => number} [options.lengthGetter]
  * @returns {Iterable<ElementOf<TEntries>>}
  */
-module.exports.entrySelector = (sortedEntries, textLimit, options) => {
+exports.entrySelector = (sortedEntries, textLimit, options) => {
   const result = chain(sortedEntries)
     .thru((entries) => [...entries].sort(byScore))
     .thru((sortedNotes) => limitText(sortedNotes, textLimit, {

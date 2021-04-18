@@ -72,4 +72,4 @@ class Roulette {
   }
 }
 
-module.exports.Roulette = Roulette;
+exports.Roulette = Roulette;

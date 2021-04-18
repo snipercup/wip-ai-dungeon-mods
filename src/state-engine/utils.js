@@ -10,7 +10,7 @@
  * @param {AssociationParams} params 
  * @returns {params is AssociationParamTypes[TType]}
  */
-module.exports.isParamsFor = (type, params) => {
+exports.isParamsFor = (type, params) => {
   if (typeof params.source === "number") return type === "history";
   return type === params.source;
 };
@@ -21,7 +21,7 @@ module.exports.isParamsFor = (type, params) => {
  * @param {AssociationParams} params 
  * @returns {params is AssociationParamTypes["implicitRef" | "playerMemory" | "history"]}
  */
-module.exports.isParamsTextable = (params) =>
+exports.isParamsTextable = (params) =>
   "entry" in params;
 
 /**
@@ -34,7 +34,7 @@ module.exports.isParamsTextable = (params) =>
  * @param {boolean} [withExcerpt]
  * @returns {string}
  */
-module.exports.worldInfoString = (worldInfo, withExcerpt = false) => {
+exports.worldInfoString = (worldInfo, withExcerpt = false) => {
   const result = `${worldInfo.id}<${worldInfo.keys}>`;
   if (!withExcerpt) return result;
 

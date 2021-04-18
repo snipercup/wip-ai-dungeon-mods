@@ -127,7 +127,7 @@ const contextModifier = (data) => {
 };
 
 /** @type {ContextModeModule} */
-module.exports.contextModeModule = {
+exports.contextModeModule = {
   name: "forward",
   context: contextModifier
 };

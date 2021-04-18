@@ -639,7 +639,7 @@ const addStateEntry = (entryClass) => {
   worldStateDefinitions[entryClass.forType] = entryClass;
 };
 
-module.exports.stateModule = {
+exports.stateModule = {
   pre: [init],
   exec: [
     // Setting up the state entries.
@@ -652,5 +652,5 @@ module.exports.stateModule = {
   post: [loadUpMemory]
 };
 
-module.exports.addStateEntry = addStateEntry;
-module.exports.worldStateDefinitions = worldStateDefinitions;
+exports.addStateEntry = addStateEntry;
+exports.worldStateDefinitions = worldStateDefinitions;

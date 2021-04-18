@@ -187,7 +187,7 @@ class _UpdateCache extends _WriteCache {
  * for the current turn is not available.
  * @returns {_ReadCache<T>}
  */
-module.exports.forRead = (aidData, name, options) =>
+exports.forRead = (aidData, name, options) =>
   new _ReadCache(name, aidData, Boolean(options?.loose));
 
 /**
@@ -206,7 +206,7 @@ module.exports.forRead = (aidData, name, options) =>
  * be stored; the storage can be sparse.
  * @returns {_WriteCache<T>}
  */
-module.exports.forWrite = (aidData, name, options) =>
+exports.forWrite = (aidData, name, options) =>
   new _WriteCache(name, aidData, options?.storageSize ?? 10);
 
 /**
@@ -230,7 +230,7 @@ module.exports.forWrite = (aidData, name, options) =>
  * the new storage if an object for the current turn is not available.
  * @returns {_UpdateCache<T>}
  */
-module.exports.forUpdate = (aidData, name, options) => {
+exports.forUpdate = (aidData, name, options) => {
   const { storageSize = 10, loose = false } = options ?? {};
   return new _UpdateCache(name, aidData, storageSize, loose);
 };
@@ -243,7 +243,7 @@ module.exports.forUpdate = (aidData, name, options) => {
  * @param {string} name
  * The name of the cache to clear.
  */
-module.exports.clearCache = (aidData, name) => {
+exports.clearCache = (aidData, name) => {
   const { state } = aidData;
   if (!state.$$turnCache) return;
   if (!state.$$turnCache[name]) return;

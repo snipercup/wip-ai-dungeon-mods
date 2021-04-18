@@ -7,13 +7,13 @@
  * @param {() => T} fn
  * @returns {T}
  */
-module.exports.dew = (fn) => fn();
+exports.dew = (fn) => fn();
 
 /**
  * @param {any} value 
  * @returns {any}
  */
-module.exports.shutUpTS = (value) => value;
+exports.shutUpTS = (value) => value;
 
 /**
  * Identity function.
@@ -22,7 +22,7 @@ module.exports.shutUpTS = (value) => value;
  * @param {T} input 
  * @returns {T}
  */
-module.exports.ident = (input) => input;
+exports.ident = (input) => input;
 
 /**
  * Creates a strongly-typed two-element tuple.
@@ -32,7 +32,7 @@ module.exports.ident = (input) => input;
  * @param {TB} b
  * @returns {[TA, TB]}
  */
-module.exports.tuple2 = (a, b) => [a, b];
+exports.tuple2 = (a, b) => [a, b];
 
 /**
  * Creates a strongly-typed three-element tuple.
@@ -43,7 +43,7 @@ module.exports.tuple2 = (a, b) => [a, b];
  * @param {TC} c
  * @returns {[TA, TB, TC]}
  */
-module.exports.tuple3 = (a, b, c) => [a, b, c];
+exports.tuple3 = (a, b, c) => [a, b, c];
 
 /**
  * Checks that a value is not `null` or `undefined`.
@@ -52,7 +52,7 @@ module.exports.tuple3 = (a, b, c) => [a, b, c];
  * @param {T} value 
  * @returns {value is Exclude<T, null | undefined>}
  */
-module.exports.isInstance = (value) => value != null;
+exports.isInstance = (value) => value != null;
 
 /**
  * Tests if something is iterable.  This will include strings, which indeed,
@@ -61,7 +61,7 @@ module.exports.isInstance = (value) => value != null;
  * @param {any} value 
  * @returns {value is Iterable<any>}
  */
-module.exports.hasIterator = (value) =>
+exports.hasIterator = (value) =>
   value != null && typeof value === "object" && Symbol.iterator in value;
 
 /**
@@ -72,7 +72,7 @@ module.exports.hasIterator = (value) =>
  * @param {Iterable<[TKey, TValue]>} kvps
  * @returns {Record<TKey, TValue>}
  */
-module.exports.fromPairs = (kvps) => {
+exports.fromPairs = (kvps) => {
   /** @type {any} Oh, shove off TS. */
   const result = {};
   for (const [k, v] of kvps) result[k] = v;
@@ -87,11 +87,11 @@ module.exports.fromPairs = (kvps) => {
  * @param {Maybe<Record<TKey, TValue>>} obj
  * @returns {Iterable<[TKey, TValue]>} 
  */
-module.exports.toPairs = function*(obj) {
+exports.toPairs = function*(obj) {
   if (obj == null) return;
   for(const key of Object.keys(obj)) {
     // @ts-ignore - `Object.keys` is too dumb.
-    yield module.exports.tuple2(key, obj[key]);
+    yield exports.tuple2(key, obj[key]);
   }
 };
 
@@ -105,10 +105,10 @@ module.exports.toPairs = function*(obj) {
  * @param {(value: TIn, key: TKey) => TOut} xformFn
  * @returns {Record<TKey, TOut>} 
  */
-module.exports.mapValues = function(obj, xformFn) {
+exports.mapValues = function(obj, xformFn) {
   /** @type {any} */
   const newObj = {};
-  for (const [key, value] of module.exports.toPairs(obj))
+  for (const [key, value] of exports.toPairs(obj))
     newObj[key] = xformFn(value, key);
 
   return newObj;
@@ -123,7 +123,7 @@ module.exports.mapValues = function(obj, xformFn) {
  * @param {TransformFn<T, Iterable<U>>} transformFn
  * @returns {Iterable<U>}
  */
-module.exports.flatMap = function* (iterable, transformFn) {
+exports.flatMap = function* (iterable, transformFn) {
   for (const value of iterable) yield* transformFn(value);
 };
 
@@ -135,10 +135,10 @@ module.exports.flatMap = function* (iterable, transformFn) {
  * @param {Iterable<T>} iterable
  * @returns {Iterable<Flattenable<T>>}
  */
-module.exports.flatten = function* (iterable) {
+exports.flatten = function* (iterable) {
   for (const value of iterable) {
     // @ts-ignore - We pass out non-iterables, as they are.
-    if (!module.exports.hasIterator(value)) yield value;
+    if (!exports.hasIterator(value)) yield value;
     // @ts-ignore - We don't flatten strings.
     else if (typeof value === "string") yield value;
     // And now, do a flatten.
@@ -153,7 +153,7 @@ module.exports.flatten = function* (iterable) {
  * @param {T[]} arr
  * @returns {Iterable<[number, T]>}
  */
-module.exports.iterArray = function* (arr) {
+exports.iterArray = function* (arr) {
   for (let i = 0, lim = arr.length; i < lim; i++)
     yield [i, arr[i]];
 };
@@ -167,9 +167,9 @@ module.exports.iterArray = function* (arr) {
  * @param {Iterable<T>} iter
  * @returns {Iterable<[number, T]>}
  */
-module.exports.iterPosition = function* (iter) {
+exports.iterPosition = function* (iter) {
   if (Array.isArray(iter)) {
-    yield* module.exports.iterArray(iter);
+    yield* exports.iterArray(iter);
   }
   else {
     let i = 0;
@@ -186,7 +186,7 @@ module.exports.iterPosition = function* (iter) {
  * @param {number} [count]
  * @returns {Iterable<T>}
  */
- module.exports.iterReverse = function* (arr, count) {
+ exports.iterReverse = function* (arr, count) {
   if (Array.isArray(arr)) {
     // Ensure `count` is between 0 and the number of items in the array.
     count = Math.max(0, Math.min(arr.length, count ?? arr.length));
@@ -195,7 +195,7 @@ module.exports.iterPosition = function* (iter) {
   }
   else {
     // Either way we gotta cache the values so we can reverse them.
-    yield* module.exports.iterReverse([...arr], count);
+    yield* exports.iterReverse([...arr], count);
   }
 };
 
@@ -208,7 +208,7 @@ module.exports.iterPosition = function* (iter) {
  * @param {TransformFn<TIn, TOut>} transformFn
  * @returns {Iterable<TOut>}
  */
-module.exports.mapIter = function* (iterable, transformFn) {
+exports.mapIter = function* (iterable, transformFn) {
   for (const value of iterable)
     yield transformFn(value);
 };
@@ -223,7 +223,7 @@ module.exports.mapIter = function* (iterable, transformFn) {
  * @param {CollectFn<TIn, TOut>} collectFn
  * @returns {Iterable<TOut>}
  */
-module.exports.collectIter = function* (iterable, collectFn) {
+exports.collectIter = function* (iterable, collectFn) {
   for (const value of iterable) {
     const result = collectFn(value);
     if (typeof result !== "undefined") yield result;
@@ -238,7 +238,7 @@ module.exports.collectIter = function* (iterable, collectFn) {
  * @param {PredicateFn<T>} predicateFn
  * @returns {Iterable<T>}
  */
- module.exports.filterIter = function* (iterable, predicateFn) {
+ exports.filterIter = function* (iterable, predicateFn) {
   for (const value of iterable)
     if (predicateFn(value))
       yield value;
@@ -253,7 +253,7 @@ module.exports.collectIter = function* (iterable, collectFn) {
  * @param {TransformFn<TValue, TKey>} transformFn
  * @returns {Iterable<[TKey, TValue[]]>}
  */
-module.exports.groupBy = function* (iterable, transformFn) {
+exports.groupBy = function* (iterable, transformFn) {
   /** @type {Map<TKey, TValue[]>} */
   const groups = new Map();
   for (const value of iterable) {
@@ -275,8 +275,8 @@ module.exports.groupBy = function* (iterable, transformFn) {
  * @param {Iterable<[TKey, TValue]>} iterable
  * @returns {Iterable<[TKey, TValue[]]>}
  */
-module.exports.partition = function* (iterable) {
-  for (const [key, values] of module.exports.groupBy(iterable, ([key]) => key)) {
+exports.partition = function* (iterable) {
+  for (const [key, values] of exports.groupBy(iterable, ([key]) => key)) {
     const group = values.map(([, value]) => value);
     yield [key, group];
   }
@@ -290,10 +290,10 @@ module.exports.partition = function* (iterable) {
  * @param  {...(T | Iterable<T>)} others
  * @returns {Iterable<T>}
  */
-module.exports.concat = function* (...others) {
+exports.concat = function* (...others) {
   for (const value of others) {
     if (typeof value === "string") yield value;
-    else if (module.exports.hasIterator(value)) yield* value;
+    else if (exports.hasIterator(value)) yield* value;
     else yield value;
   }
 };
@@ -306,7 +306,7 @@ module.exports.concat = function* (...others) {
  * @param {Iterable<T>} iterable
  * @returns {Iterable<T>}
  */
-module.exports.interweave = function* (value, iterable) {
+exports.interweave = function* (value, iterable) {
   const iterator = iterable[Symbol.iterator]();
   let prevEl = iterator.next();
   while (!prevEl.done) {
@@ -326,7 +326,7 @@ module.exports.interweave = function* (value, iterable) {
  * @param {TapFn<ElementOf<TIter>>} tapFn
  * @returns {Iterable<ElementOf<TIter>>}
  */
-module.exports.tapEach = function* (iterable, tapFn) {
+exports.tapEach = function* (iterable, tapFn) {
   // Clone an array in case the reference may be mutated by the `tapFn`.
   const safedIterable = Array.isArray(iterable) ? [...iterable] : iterable;
   for (const value of safedIterable) {
@@ -344,7 +344,7 @@ module.exports.tapEach = function* (iterable, tapFn) {
  * @param {TapFn<Array<ElementOf<TIter>>>} tapFn
  * @returns {Iterable<ElementOf<TIter>>}
  */
- module.exports.tapAll = function* (iterable, tapFn) {
+ exports.tapAll = function* (iterable, tapFn) {
   // Materialize the iterable; we can't provide an iterable that is
   // currently being iterated.
   const materialized = [...iterable];
@@ -353,8 +353,8 @@ module.exports.tapEach = function* (iterable, tapFn) {
 };
 
 /** @type {ChainingFn} */
-module.exports.chain = module.exports.dew(() => {
-  const { mapIter, filterIter, collectIter, concat, tapEach, tapAll, flatten } = module.exports;
+exports.chain = exports.dew(() => {
+  const { mapIter, filterIter, collectIter, concat, tapEach, tapAll, flatten } = exports;
   // @ts-ignore - Should be checked.
   const chain = (iterable) => {
     iterable = iterable ?? [];
@@ -389,7 +389,7 @@ module.exports.chain = module.exports.dew(() => {
  * @param {TFunction} fn
  * @returns {TFunction}
  */
-module.exports.memoize = (fn) => {
+exports.memoize = (fn) => {
   const store = new Map();
 
   // @ts-ignore - Shut up TS.
@@ -407,7 +407,7 @@ module.exports.memoize = (fn) => {
  * @param {unknown} value 
  * @returns {number}
  */
-const getLength = (value) => module.exports.getText(value).length;
+const getLength = (value) => exports.getText(value).length;
 
 /**
  * Yields strings of things with a `text` property from the given iterable until
@@ -434,7 +434,7 @@ const getLength = (value) => module.exports.getText(value).length;
  * search for a shorter string to be included instead.
  * @returns {Iterable<ElementOf<TIter>>}
  */
-module.exports.limitText = function* (textIterable, maxLength, options) {
+exports.limitText = function* (textIterable, maxLength, options) {
   const { lengthGetter = getLength, permissive = false } = options ?? {};
   const textIterator = textIterable[Symbol.iterator]();
   let lengthRemaining = maxLength;
@@ -459,7 +459,7 @@ module.exports.limitText = function* (textIterable, maxLength, options) {
  * 
  * @param {string} str 
  */
-module.exports.escapeRegExp = (str) => {
+exports.escapeRegExp = (str) => {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
@@ -470,7 +470,7 @@ module.exports.escapeRegExp = (str) => {
  * @param {RegExp} regex
  * @returns {number}
  */
-module.exports.countOccurences = (str, regex) => {
+exports.countOccurences = (str, regex) => {
   return ((str || '').match(regex) || []).length;
 };
 
@@ -483,8 +483,8 @@ module.exports.countOccurences = (str, regex) => {
  * @param {number} [count]
  * @returns {T[]}
  */
-module.exports.getFinal = (arr, count = 1) => {
-  return [...module.exports.iterReverse(arr, count)];
+exports.getFinal = (arr, count = 1) => {
+  return [...exports.iterReverse(arr, count)];
 };
 
 /**
@@ -497,7 +497,7 @@ module.exports.getFinal = (arr, count = 1) => {
  * @param {boolean} [dropTail]
  * @returns {string[]}
  */
-module.exports.limitLength = (charLimit, inputLines, dropTail = true) => {
+exports.limitLength = (charLimit, inputLines, dropTail = true) => {
   /** @type {{ chars: number, lines: string[] }} */
   const state = { chars: -1, lines: [] };
 
@@ -532,7 +532,7 @@ module.exports.limitLength = (charLimit, inputLines, dropTail = true) => {
  * @param {string} str
  * @returns {number}
  */
-module.exports.sumLength = (acc, str) => {
+exports.sumLength = (acc, str) => {
   return acc + str.length;
 };
 
@@ -542,7 +542,7 @@ module.exports.sumLength = (acc, str) => {
  * - If `item` is itself a string, it returns that.
  * - Otherwise, produces an empty-string.
  */
-module.exports.getText = module.exports.dew(() => {
+exports.getText = exports.dew(() => {
   /** @type {(item: any) => item is string} */
   const isString = (item) => typeof item === "string";
 
@@ -575,8 +575,8 @@ module.exports.getText = module.exports.dew(() => {
  * @param {string[]} priority
  * @returns {string[]}
  */
-module.exports.foldLines = (charLimit, heading, filler, priority) => {
-  const { sumLength, limitLength } = module.exports;
+exports.foldLines = (charLimit, heading, filler, priority) => {
+  const { sumLength, limitLength } = exports;
   const priorityLength = priority.reduce(sumLength, 1);
   const notFiller = heading.reduce(sumLength, 1) + priorityLength;
   const newFiller = limitLength(charLimit - notFiller, filler, false);
@@ -592,7 +592,7 @@ module.exports.foldLines = (charLimit, heading, filler, priority) => {
  * @param {number} sides
  * @returns {number}
  */
-module.exports.rollDice = (count, sides) => {
+exports.rollDice = (count, sides) => {
   let result = 0;
   for (let i = 0; i < count; i++)
   result += Math.floor(Math.random() * sides) + 1;

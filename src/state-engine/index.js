@@ -13,7 +13,7 @@ const turnCache = require("../turn-cache");
  * @param {...StateModule} stateModules
  * @returns {BundledModifierFn}
  */
-module.exports.inputModifier = (...stateModules) => {
+exports.inputModifier = (...stateModules) => {
   // Make sure the core module comes first, even if it was already in `stateModules`.
   // We also throw in the vanilla module, for backward compatibility.
   const theModules = new Set([coreModule, vanillaModule, ...stateModules]);
@@ -80,7 +80,7 @@ const commandPatterns = [
   }]
 ];
 
-module.exports.commands = [
+exports.commands = [
   new MatchCommand("state-engine", new Map(commandPatterns))
 ];
 
@@ -90,11 +90,11 @@ module.exports.commands = [
  * @param {import("aid-bundler").Pipeline} pipeline 
  * @param  {...any} stateModules 
  */
-module.exports.addPlugin = (pipeline, ...stateModules) => {
-  for (const cmd of module.exports.commands)
+exports.addPlugin = (pipeline, ...stateModules) => {
+  for (const cmd of exports.commands)
     pipeline.commandHandler.addCommand(cmd);
 
   pipeline.addPlugin(new Plugin("State Engine",
-    module.exports.inputModifier(...stateModules)
+    exports.inputModifier(...stateModules)
   ));
 };

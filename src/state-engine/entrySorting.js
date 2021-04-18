@@ -29,7 +29,7 @@ const debugText = ({ text }) => text?.split(" ").slice(0, 10).join(" ") ?? "(no 
  * 
  * @param {SortableEntry[]} theEntries
  */
-module.exports.sortingHelpers = (theEntries) => {
+exports.sortingHelpers = (theEntries) => {
   /** @type {Set<string>} */
   const knownKeys = new Set();
   /** @type {Map<string | null, number>} */
@@ -257,7 +257,7 @@ module.exports.sortingHelpers = (theEntries) => {
  * @param {ReturnType<module["exports"]["sortingHelpers"]>} helpers
  * @returns {SortingFn}
  */
-module.exports.buildSorter = (helpers) => {
+exports.buildSorter = (helpers) => {
   /**
    * Sorts:
    * - Entries that share keys or are solely related are positioned:
@@ -399,12 +399,12 @@ exports.buildGrouper = (orderedEntries, helpers) => {
  * @param {Iterable<TEntry>} theEntries 
  * @returns {Iterable<TEntry & WithOrdering>}
  */
-module.exports.entrySorter = function* (theEntries) {
+exports.entrySorter = function* (theEntries) {
   // Clone the entries or resolve the iterable.
   const arrEntries = [...theEntries];
-  const helpers = module.exports.sortingHelpers(arrEntries);
-  const orderedEntries = arrEntries.sort(module.exports.buildSorter(helpers));
-  const groupedEntries = orderedEntries.sort(module.exports.buildGrouper(orderedEntries, helpers));
+  const helpers = exports.sortingHelpers(arrEntries);
+  const orderedEntries = arrEntries.sort(exports.buildSorter(helpers));
+  const groupedEntries = orderedEntries.sort(exports.buildGrouper(orderedEntries, helpers));
 
   for (let i = 0, lim = groupedEntries.length; i < lim; i++)
     yield { ...groupedEntries[i], order: i };

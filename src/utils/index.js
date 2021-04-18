@@ -488,44 +488,6 @@ exports.getFinal = (arr, count = 1) => {
 };
 
 /**
- * Culls elements from the start of `inputLines` such that when the array
- * is joined, it will be under `charLimit` length.  When `dropTail` is
- * `true`, it will cull from the end of the array, otherwise the start of it.
- * 
- * @param {number} charLimit 
- * @param {string[]} inputLines
- * @param {boolean} [dropTail]
- * @returns {string[]}
- */
-exports.limitLength = (charLimit, inputLines, dropTail = true) => {
-  /** @type {{ chars: number, lines: string[] }} */
-  const state = { chars: -1, lines: [] };
-
-  /** @type {(i: number) => boolean} */
-  const iterFn = (i) => {
-    const curLine = inputLines[i];
-    const { chars } = state;
-    const newChars = chars + curLine.length + 1;
-    if (newChars > charLimit) return false;
-    
-    state.chars = newChars;
-    state.lines.push(curLine);
-    return true;
-  };
-  
-  if (dropTail) {
-    for (let i = 0, lim = inputLines.length; i < lim; i++)
-      if (!iterFn(i)) break;
-    return state.lines;
-  }
-  else {
-    for (let i = inputLines.length - 1; i >= 0; i--)
-      if (!iterFn(i)) break;
-    return state.lines.reverse();
-  }
-};
-
-/**
  * Function for `reduce` that sums things with a `length` property.
  * 
  * @param {number} acc
@@ -563,27 +525,6 @@ exports.getText = exports.dew(() => {
 
   return impl;
 });
-
-/**
- * Compiles three sets of string arrays such that they will be under `charLimit`
- * length when joined.  Will drop elements from `filler` first, then `heading`.
- * Returns a combined array with whatever wasn't cut.
- * 
- * @param {number} charLimit 
- * @param {string[]} heading
- * @param {string[]} filler
- * @param {string[]} priority
- * @returns {string[]}
- */
-exports.foldLines = (charLimit, heading, filler, priority) => {
-  const { sumLength, limitLength } = exports;
-  const priorityLength = priority.reduce(sumLength, 1);
-  const notFiller = heading.reduce(sumLength, 1) + priorityLength;
-  const newFiller = limitLength(charLimit - notFiller, filler, false);
-  const notHeading = newFiller.reduce(sumLength, 1) + priorityLength;
-  const newHeading = limitLength(charLimit - notHeading, heading, true);
-  return [...newHeading, ...newFiller, ...priority];
-};
 
 /**
  * Rolls a dice, D&D style.

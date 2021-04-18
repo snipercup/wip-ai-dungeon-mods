@@ -1,5 +1,5 @@
 const { entryCount } = require("./config");
-const { dew, getText } = require("../utils");
+const { dew, tuple2, getText } = require("../utils");
 const { isParamsFor, isParamsTextable } = require("../state-engine/utils");
 const { MatchableEntry } = require("./MatchableEntry");
 
@@ -360,8 +360,9 @@ class StateEngineEntry {
    * 
    * The score is calculated based on:
    * - A base scalar (`1` by default).
-   * - Unique inclusive keywords matched versus the total keywords the entry can match.
-   *   If there were no keywords to match, it pretends that 50% of keywords matched.
+   * - The total inclusive keywords matched versus unique inclusive keywords matched.
+   *   Assumes a 1-to-2 ratio if the entry has no keywords or was associated without
+   *   them, effectively penalizing the entry for not being matched through text.
    * - The number of exclusive keywords dodged.
    * - The number of related keys that had to match for this to match.
    * 
@@ -376,20 +377,25 @@ class StateEngineEntry {
    */
   valuator(matcher, source, entry, baseScalar = 1) {
     if (baseScalar === 0) return 0;
-    
-    const text = entry && getText(entry);
+
+    const text = getText(entry);
     const inclusiveCount = this.include.size;
     const exclusiveCount = this.exclude.size;
+    const penaltyRatio = tuple2(1, text && exclusiveCount > 0 ? 1 : 2);
 
-    const uniqueKeywordsMatched
-      = inclusiveCount === 0 ? 0
-      : text ? matcher.uniqueOccurancesIn(text)
-      : 0;
-    
+    const [totalMatched, uniqueMatched] = dew(() => {
+      if (inclusiveCount === 0) return penaltyRatio;
+      if (!text) return penaltyRatio;
+      const totalMatched = matcher.occurancesIn(text);
+      if (totalMatched === 0) return penaltyRatio;
+      const uniqueMatched = matcher.uniqueOccurancesIn(text);
+      return [totalMatched, uniqueMatched];
+    });
+
     const keywordScalar = 10 * Math.pow(1.1, exclusiveCount);
-
-    const keywordPart = uniqueKeywordsMatched === 0 ? 0.5 : uniqueKeywordsMatched / inclusiveCount;
+    const keywordPart = totalMatched / uniqueMatched;
     const relationsPart = this.relations.size + 1;
+
     return baseScalar * keywordPart * keywordScalar * relationsPart;
   }
 

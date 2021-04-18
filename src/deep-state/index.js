@@ -86,8 +86,10 @@ const init = (data) => {
      * @returns {number}
      */
     valuator(matcher, source, entry) {
-      // Give these entries a higher score.
-      return super.valuator(matcher, source, entry, 10);
+      // Give a flat score, if it's an implicit match.
+      if (source === "implicit") return 50;
+      // Otherwise, boost them up to the level of `$State` entries.
+      return super.valuator(matcher, source, entry, 5);
     }
 
     /**
@@ -149,10 +151,10 @@ const init = (data) => {
      * @returns {number}
      */
     valuator(matcher, source, entry) {
-      // Give these entries a higher score, in general, but the biggest boost if
-      // they are actually mentioned in the text.
-      const scalar = source === "implicit" ? 4 : 8;
-      return super.valuator(matcher, source, entry, scalar);
+      // Give a flat score if it only won the dice roll.
+      if (source === "implicit") return 25;
+      // Give these entries a boost if they're referenced in the text.
+      return super.valuator(matcher, source, entry, 4);
     }
   }
 
@@ -255,7 +257,9 @@ const init = (data) => {
      */
     valuator(matcher, source, entry) {
       // Give a boost if this `Lore` was referenced by a later `State`.
-      const scalar = loreWithMatchedStates.has(matcher.infoId) ? 5 : 1;
+      // Later states only, because we don't want this lore entry over
+      // shadowing the more important state entry.
+      const scalar = loreWithMatchedStates.has(matcher.infoId) ? 2 : 1;
       return super.valuator(matcher, source, entry, scalar);
     }
   }
@@ -336,7 +340,7 @@ const init = (data) => {
      */
     valuator(matcher, source, entry) {
       // Give these entries a higher score.
-      return super.valuator(matcher, source, entry, 10);
+      return super.valuator(matcher, source, entry, 3);
     }
 
     /**

@@ -25,6 +25,19 @@ exports.isParamsTextable = (params) =>
   "entry" in params;
 
 /**
+ * Creates a ten word excerpt from a string.
+ * 
+ * @param {string} str
+ * @returns {string}
+ */
+exports.makeExcerpt = (str) => {
+  const splitUp = str.split(" ").filter(Boolean);
+  const shortened = splitUp.slice(0, 10);
+  if (splitUp.length === shortened.length) return str;
+  return `${shortened.join(" ").replace(/\.$/, "")}...`;
+};
+
+/**
  * Converts a world info entry into a standardized string.
  * 
  * You can optionally include an excerpt, which will be on a new line with
@@ -35,11 +48,27 @@ exports.isParamsTextable = (params) =>
  * @returns {string}
  */
 exports.worldInfoString = (worldInfo, withExcerpt = false) => {
-  const result = `${worldInfo.id}<${worldInfo.keys}>`;
+  const result = `WorldInfo#${worldInfo.id}<${worldInfo.keys}>`;
   if (!withExcerpt) return result;
 
-  const excerpt = worldInfo.entry
-    .split(" ").filter(Boolean).slice(0, 10)
-    .join(" ").replace(/\.$/, "")
-  return `${result}\n\t${excerpt}...`;
+  return `${result}\n\t${exports.makeExcerpt(worldInfo.entry)}`;
 }
+
+/**
+ * Converts a `StateEngineData` or `StateEngineEntry` into a standardized string.
+ * 
+ * @param {StateEngineData | StateEngineEntry} stateData
+ * @param {WorldInfoEntry} worldInfo
+ * @param {boolean} [withExcerpt]
+ * @returns {string}
+ */
+exports.stateDataString = (stateData, worldInfo, withExcerpt = false) => {
+  const { type, key, relations } = stateData;
+  const relPart = [...relations].filter((str) => str !== key).join(" & ");
+  const keyPart = [key, relPart].filter(Boolean).join(": ");
+  const typePart = keyPart ? `$${type}[${keyPart}]` : `$${type}`;
+  const result = `StateEntry#${worldInfo.id}<${typePart}>`;
+  if (!withExcerpt) return result;
+
+  return `${result}\n\t${exports.makeExcerpt(worldInfo.entry)}...`;
+};

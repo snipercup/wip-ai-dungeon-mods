@@ -1,6 +1,6 @@
 const { entryCount } = require("./config");
 const { dew, tuple2, getText } = require("../utils");
-const { isParamsFor, isParamsTextable } = require("../state-engine/utils");
+const { isParamsFor, isParamsTextable, stateDataString } = require("./utils");
 const { MatchableEntry } = require("./MatchableEntry");
 
 /** Common regular expressions for parsing state entry definitions. */
@@ -435,6 +435,16 @@ class StateEngineEntry {
    */
   toMatchable(matchCounter) {
     return new MatchableEntry(this, matchCounter);
+  }
+
+  /**
+   * Converts this instance into a string.
+   * 
+   * @param {boolean} [withExcerpt]
+   * @returns {string}
+   */
+  toString(withExcerpt) {
+    return stateDataString(this, this.worldInfo, withExcerpt);
   }
 
   /**

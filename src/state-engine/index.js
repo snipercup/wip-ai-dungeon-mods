@@ -3,6 +3,7 @@
 const { Plugin } = require("aid-bundler");
 const { MatchCommand } = require("../commands");
 const { flatMap, iterReverse, chain, toPairs, fromPairs, tuple2 } = require("../utils");
+const { makeExcerpt, stateDataString } = require("./utils");
 const { stateModule: coreModule } = require("./core");
 const { stateModule: vanillaModule } = require("./vanilla");
 const turnCache = require("../turn-cache");
@@ -46,9 +47,10 @@ const reportOn = function* (worldInfoMap, stateDataCache, entries) {
     if (!info) continue;
     const data = stateDataCache[entry.infoId];
     if (!data) continue;
+    const ident = stateDataString(data, info);
     const score = entry.score.toFixed(2);
-    const snipette = info.entry.split(" ").filter(Boolean).slice(0, 10).join(" ");
-    yield `${data.key} (${score}) @ ${location}\n\t${snipette}`;
+    const excerpt = makeExcerpt(info.entry);
+    yield `${ident} (${score}) @ ${location}\n\t${excerpt}`;
   }
 };
 

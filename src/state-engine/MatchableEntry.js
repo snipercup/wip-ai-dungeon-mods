@@ -1,5 +1,5 @@
 /// <reference path="./state-engine.d.ts" />
-const { countOccurences, escapeRegExp } = require("../utils");
+const { chain, countOccurences, escapeRegExp } = require("../utils");
 
 /** @typedef {import("../utils")[]} */
 
@@ -44,28 +44,28 @@ const memoizedCounter = () => {
 class MatchableEntry {
   /**
    * @param {StateEngineEntry} stateEntry
-   * @param {WorldInfoEntry} infoEntry
    * @param {ReturnType<memoizedCounter>} [matchCounter]
    */
-  constructor(stateEntry, infoEntry, matchCounter) {
+  constructor(stateEntry, matchCounter) {
     this.stateEntry = stateEntry;
-    this.infoEntry = infoEntry;
     this.matchCounter = matchCounter ?? memoizedCounter();
 
-    this.include = stateEntry.include
-      .map((kw) => new RegExp(keywordPattern(kw), "i"));
+    this.include = chain(stateEntry.include)
+      .map((kw) => new RegExp(keywordPattern(kw), "i"))
+      .toArray();
 
-    this.exclude = stateEntry.exclude
+    this.exclude = chain(stateEntry.exclude)
       .filter(Boolean)
-      .map((kw) => new RegExp(keywordPattern(kw), "i"));
+      .map((kw) => new RegExp(keywordPattern(kw), "i"))
+      .toArray();
   }
 
   get text() {
-    return this.infoEntry.entry;
+    return this.stateEntry.text;
   }
 
   get infoId() {
-    return this.infoEntry.id;
+    return this.stateEntry.infoId;
   }
 
   get type() {

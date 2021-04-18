@@ -1,36 +1,35 @@
 /// <reference path="./state-engine.d.ts" />
 const { dew, shutUpTS, tuple2, tuple3 } = require("../utils");
-const { chain, iterArray, iterReverse, groupBy, mapValues, mapIter } = require("../utils");
-const { escapeRegExp, toPairs, fromPairs, ident, getText } = require("../utils");
+const { chain, iterArray, iterReverse, groupBy, mapIter } = require("../utils");
+const { escapeRegExp, toPairs, fromPairs, getText } = require("../utils");
+const { worldInfoString } = require("./utils");
 const { Roulette } = require("../utils/Roulette");
+const { entryCount } = require("./config");
 const { MatchableEntry, memoizedCounter } = require("./MatchableEntry");
-const { StateEngineEntry } = require("./StateEngineEntry");
+const { StateEngineEntry, BadStateEntryError, extractType } = require("./StateEngineEntry");
 const turnCache = require("../turn-cache");
-
-// Configuration.
-
-/** The number of `history` entries to match to state data. */
-const entryCount = 20;
 
 // Private state.
 /** @type {import("../turn-cache").WriteCache<StateDataCache>} */
 let theCache;
-/** @type {Record<string, StateEngineData>} */
-let newDataMap = {};
+/** @type {Record<string, StateEngineEntry>} */
+let newEntriesMap = {};
 /** @type {Record<string, StateEngineEntry>} */
 let currentEntriesMap = {};
 /** @type {Record<string, WorldInfoEntry>} */
 let worldInfoMap = {};
-/** @type {string[]} */
-let validationIssues = [];
+/** @type {Map<string, string[]>} */
+let validationIssues = new Map();
 /** @type {MatchableEntry[]} */
 let sortedStateMatchers = [];
 /** @type {HistoryEntry[]} */
 let workingHistory = [];
 /** @type {StateAssociations} */
 let stateAssociations = new Map();
+/** @type {ScoresMap} */
+let scoresMap = new Map();
 
-/** @type {Record<string, StateDefinition>} */
+/** @type {Record<string, typeof StateEngineEntry>} */
 const worldStateDefinitions = {};
 
 /**
@@ -38,8 +37,8 @@ const worldStateDefinitions = {};
  * the end, so they are evaluated last and will be able to look up if the related
  * data was matched.
  * 
- * @param {StateEngineData} a 
- * @param {StateEngineData} b 
+ * @param {StateEngineEntry} a 
+ * @param {StateEngineEntry} b 
  */
 const stateSorter = (a, b) => {
   // When one has a key and the other doesn't, sort the key'd one later.
@@ -47,72 +46,15 @@ const stateSorter = (a, b) => {
   if (aHasKey !== Boolean(b.key)) return aHasKey ? 1 : -1;
 
   // When one has more references, sort that one later.
-  const refCount = a.relations.length - b.relations.length;
+  const refCount = a.relations.size - b.relations.size;
   if (refCount !== 0) return refCount;
 
   // When one references the other, sort the one doing the referencing later.
   // It is possible that they reference each other; this is undefined behavior.
-  if (b.key && a.relations.includes(b.key)) return 1;
-  if (a.key && b.relations.includes(a.key)) return -1;
+  if (b.key && a.relations.has(b.key)) return 1;
+  if (a.key && b.relations.has(a.key)) return -1;
 
   return 0;
-};
-
-/**
- * Iterates a `usedKeys` map across a range of entries.
- * Bear in mind that the `start` and `end` are offsets from the latest
- * `history` entry into the past.
- * 
- * So, `0` is the just-now inputted text from the player, and `1` is
- * the last entry in `history`, and `2` is the the next oldest `history`
- * entry, and so on.
- * 
- * @param {UsedKeysMap} usedKeys
- * @param {number} start
- * @param {number} [end]
- * @returns {Iterable<string>}
- */
-const iterUsedKeys = function*(usedKeys, start, end = entryCount) {
-  // Make sure we don't go beyond the available history.
-  end = Math.min(end, entryCount);
-  let index = Math.max(start, 0);
-  while(index <= end) {
-    const theKeys = usedKeys.get(index++);
-    if (theKeys) yield* theKeys;
-  }
-}
-
-/**
- * Checks the `text` against the keywords of the given `matcher`.
- * 
- * @param {MatchableEntry} matcher
- * @param {string} text
- */
-const checkKeywords = (matcher, text) => {
-  if (!text) return false;
-  if (matcher.hasExcludedWords(text)) return false;
-  if (!matcher.hasIncludedWords(text)) return false;
-  return true;
-};
-
-/**
- * @template {keyof StateProcessors} TProc
- * @param {StateEngineData["type"]} stateType
- * @param {TProc} processor
- * @param {AssertStateProcessor<TProc>} defaultFn
- * @returns {AssertStateProcessor<TProc>}
- */
-const getProcessorFor = (stateType, processor, defaultFn) => {
-  const procFn = worldStateDefinitions[stateType]?.[processor];
-  if (!procFn) return defaultFn;
-  // @ts-ignore - Cannot be known, but checked.
-  return (...args) => {
-    // @ts-ignore - Cannot be known, but checked.
-    const result = procFn(...args);
-    if (result != null) return result;
-    // @ts-ignore - Cannot be known, but checked.
-    return defaultFn(...args);
-  }
 };
 
 /** @type {GetAssociationSetFn} */
@@ -191,45 +133,43 @@ const init = (data) => {
 };
 
 /**
- * Against `state.$$stateDataCache`, removes deleted `WorldInfoEntry` and parses
- * new `StateEngineData` for insertions or updates.
+ * Parses World Info entries into State Engine entries.
  * 
  * @type {BundledModifierFn}
  */
-const updateStateEntries = ({ worldEntries, state }) => {
+const createStateEntries = (data) => {
+  const { worldEntries, state } = data;
   worldInfoMap = fromPairs(worldEntries.map((wi) => tuple2(wi.id, wi)));
-  newDataMap = {};
-  validationIssues = [];
+  currentEntriesMap = {};
+  validationIssues = new Map();
 
-  // Determine what needs updating.
-  const existingCache = state.$$stateDataCache || {};
-  const missingIds = Object.keys(worldInfoMap).filter((id) => !existingCache[id]);
-  const discardedIds = Object.keys(existingCache).filter((id) => !worldInfoMap[id]);
-  const updateIds = Object.keys(existingCache)
-    .filter((id) => Boolean(worldInfoMap[id]))
-    .filter((id) => worldInfoMap[id].keys !== existingCache[id].infoKey);
+  /** @type {(id: string) => string | undefined} */
+  const createEntry = (id) => {
+    try {
+      const worldInfo = worldInfoMap[id];
+      const entryType = extractType(worldInfo) ?? "VanillaEntry";
+      const EntryClass = worldStateDefinitions[entryType];
+      if (!EntryClass) return `Unknown entry type: \`${entryType}\``;
 
-  // Perform updates.
-  for (const id of [...discardedIds, ...updateIds])
-    delete existingCache[id];
-  for (const id of [...missingIds, ...updateIds]) {
-    const newEntry = StateEngineEntry.parse(worldInfoMap[id]);
-    if (!newEntry) {
-      validationIssues.push(`World info entry \`${worldInfoMap[id].keys}\` could not be parsed.`);
+      const newEntry = new EntryClass(worldInfo);
+      if (!newEntry)
+        return `World info could not be parsed.`;
+        currentEntriesMap[id] = newEntry;
     }
-    else if (newEntry.type !== "VanillaEntry" && newEntry.infoKey.indexOf(",") !== -1) {
-      validationIssues.push([
-        `World info entry \`${worldInfoMap[id].keys}\` contains a comma`,
-        "keywords should be separated by a semi-colon, instead."
-      ].join("; "));
+    catch (err) {
+      if (err instanceof BadStateEntryError) return err.message;
+      throw err;
     }
-    else {
-      newDataMap[id] = newEntry;
-    }
+  };
+  
+  // Perform entry construction.
+  for (const id of Object.keys(worldInfoMap)) {
+    const maybeIssue = createEntry(id);
+    if (!maybeIssue) continue;
+    const theIssues = validationIssues.get(id) ?? [];
+    theIssues.push(maybeIssue);
+    validationIssues.set(id, theIssues);
   }
-
-  // Update the cache for now; we may be initializing it for the first time.
-  state.$$stateDataCache = existingCache;
 };
 
 /**
@@ -238,38 +178,61 @@ const updateStateEntries = ({ worldEntries, state }) => {
  * @type {BundledModifierFn}
  */
 const validateStateEntries = (data) => {
-  for (const id of Object.keys(newDataMap)) {
-    const stateData = newDataMap[id];
-    const validatorFn = getProcessorFor(stateData.type, "validator", () => []);
-    const results = validatorFn(stateData);
+  for (const id of Object.keys(currentEntriesMap)) {
+    const entry = currentEntriesMap[id];
+    const results = entry.validator();
     if (results.length === 0) continue;
+    delete currentEntriesMap[id];
 
-    validationIssues.push(...results);
-    delete newDataMap[id];
+    const theIssues = validationIssues.get(id) ?? [];
+    theIssues.push(...results);
+    validationIssues.set(id, theIssues);
   }
 
-  if (validationIssues.length === 0) return;
+  if (validationIssues.size === 0) return;
+
   data.useAI = false;
-  data.message = [
-    "The following State Engine validation issues were discovered:",
-    ...validationIssues
-  ].join("\n");
+  data.message = chain(validationIssues)
+    .map(([id, issues]) => [
+      `\t${worldInfoString(worldInfoMap[id])}`,
+      ...issues.map((issue) => (`\t\t• ${issue}`))
+    ])
+    .flatten()
+    .value((lines) => {
+      return [
+        "The following State Engine validation issues were discovered:",
+        ...lines
+      ].join("\n")
+    });
 };
+
+/**
+ * @param {StateEngineEntry} entry
+ * @returns {StateDataForModifier}
+ */
+const entryForModifier = (entry) => ({
+  ...entry.toJSON(),
+  // Clone the current state of the sets.
+  relations: new Set(entry.relations),
+  include: new Set(entry.include),
+  exclude: new Set(entry.exclude)
+});
 
 /**
  * Applies modifiers to newly parsed and validated `StateEngineData`.
  * 
  * @type {BundledModifierFn}
  */
+// @ts-ignore
 const modifyStateEntries = (data) => {
-  const allStates = Object.keys(newDataMap)
-    .map((id) => newDataMap[id]);
+  const currentEntries = Object.values(currentEntriesMap);
 
-  for (const id of Object.keys(newDataMap)) {
-    const stateData = newDataMap[id];
-    const modifierFn = getProcessorFor(stateData.type, "modifier", ident);
-    newDataMap[id] = modifierFn(stateData, allStates);
-  }
+  // We need to store copies, as `modifier` will mutate instances.
+  const allStates = chain(toPairs(currentEntriesMap))
+    .map(([id, entry]) => tuple2(id, entryForModifier(entry)))
+    .value((kvps) => new Map(kvps));
+
+  for (const entry of currentEntries) entry.modifier(allStates);
 };
 
 /**
@@ -300,33 +263,29 @@ const parseInputMode = (data) => {
  */
 const finalizeForProccessing = (data) => {
   const { text, state, history, matchCounter } = data;
-  const { $$stateDataCache = {} } = state;
-  const newCache = { ...$$stateDataCache, ...newDataMap };
 
-  currentEntriesMap = mapValues(newCache, (sd, id) => new StateEngineEntry(sd, worldInfoMap[id]));
   stateAssociations = new Map();
   workingHistory = [...history.slice(-1 * entryCount), { text, type: parseInputMode(data) }];
 
   sortedStateMatchers = Object.keys(currentEntriesMap)
     .map((id) => currentEntriesMap[id])
     .sort(stateSorter)
-    .map((sd) => new MatchableEntry(sd, worldInfoMap[sd.infoId], matchCounter));
-  
-  state.$$stateDataCache = newCache;
+    .map((sd) => sd.toMatchable(matchCounter));
 };
 
 /**
  * @param {import("aid-bundler/src/aidData").AIDData} data
- * @returns {Iterable<AssociationHelperResult>}
+ * @param {UsedKeysMap} [usedKeys]
+ * @returns {Iterable<[MatchableEntry, FlatAssociationParams]>}
  */
-const associationsHelper = function* (data) {
+const associationsHelper = function* (data, usedKeys) {
   const { playerMemory, state: { memory: { authorsNote, frontMemory } } } = data;
   // Let's get the easy stuff out of the way first.
   for (const matcher of sortedStateMatchers) {
-    yield [matcher, "implicit"];
-    if (playerMemory) yield [matcher, "playerMemory", playerMemory];
-    if (!authorsNote) yield [matcher, "authorsNote"];
-    if (!frontMemory) yield [matcher, "frontMemory"];
+    yield [matcher, { source: "implicit" }];
+    if (playerMemory) yield [matcher, { source: "playerMemory", entry: playerMemory }];
+    if (!authorsNote) yield [matcher, { source: "authorsNote" }];
+    if (!frontMemory) yield [matcher, { source: "frontMemory" }];
   }
 
   // Next, we'll run through the implicit inclusions and give a chance for entries
@@ -334,8 +293,8 @@ const associationsHelper = function* (data) {
   for (const matcher of sortedStateMatchers) {
     for (const includedId of getAssociationSet("implicit", true)) {
       if (matcher.infoId === includedId) continue;
-      const stateData = currentEntriesMap[includedId];
-      yield [matcher, "implicitRef", stateData];
+      const otherEntry = currentEntriesMap[includedId];
+      yield [matcher, { source: "implicitRef", entry: otherEntry }];
     }
   }
 
@@ -343,50 +302,8 @@ const associationsHelper = function* (data) {
   for (const [index, historyEntry] of iterArray(workingHistory)) {
     const offset = workingHistory.length - 1 - index;
     for (const matcher of sortedStateMatchers)
-      yield [matcher, offset, historyEntry];
+      yield [matcher, { source: offset, entry: historyEntry, usedKeys }];
   }
-};
-
-/**
- * @param {MatchableEntry} matcher
- * @param {AssociationSources} source
- * @param {StateEngineEntry | HistoryEntry | string} [entry]
- * @param {UsedKeysMap} [usedKeys]
- * @returns {boolean}
- */
-const defaultAssociationFn = (matcher, source, entry, usedKeys) => {
-  // The default associator only works with known entry types.
-  if (worldStateDefinitions[matcher.type] == null) return false;
-
-  const text = getText(entry).trim();
-  
-  // The default associator requires text to do any form of matching.
-  if (!text) return false;
-  // Default associator does not do implicit reference associations.
-  if (source === "implicitRef") return false;
-  if (!checkKeywords(matcher, text)) return false; 
-
-  // We're done if we can't process relations.
-  if (!usedKeys) return true;
-
-  // The default associator looks at the entire history up to this point
-  // for matching references.
-  const validForRelations = dew(() => {
-    if (matcher.stateEntry.relations.length === 0) return true;
-    if (typeof source !== "number") return true;
-    const allUsedKeys = new Set(iterUsedKeys(usedKeys, source));
-    return matcher.stateEntry.relations.every((key) => allUsedKeys.has(key));
-  });
-  if (!validForRelations) return false;
-
-  // Record this key's usage, if needed.
-  if (!matcher.stateEntry.key) return true;
-  if (typeof source !== "number") return true;
-
-  const theKeys = usedKeys.get(source) ?? new Set();
-  theKeys.add(matcher.stateEntry.key);
-  usedKeys.set(source, theKeys);
-  return true;
 };
 
 /**
@@ -399,19 +316,13 @@ const associateState = (data) => {
   /** @type {UsedKeysMap} */
   const usedKeys = new Map();
 
-  for (const [matcher, source, entry] of associationsHelper(data)) {
-    /** @type {StateAssociationBaseFn} */
-    const associationFn = getProcessorFor(matcher.type, "associator", defaultAssociationFn);
-    const result
-      = typeof source === "string" ? associationFn(matcher, source, entry)
-      : associationFn(matcher, source, entry, usedKeys);
-    if (result) getAssociationSet(source, true).add(matcher.infoId);
+  for (const [matcher, params] of associationsHelper(data, usedKeys)) {
+    const result = matcher.stateEntry.associator(matcher, params);
+    if (result) getAssociationSet(params.source, true).add(matcher.infoId);
   }
 
   //console.log([...usedKeys].map(([key, theSet]) => `${key} uses: ${[...theSet].join(", ")}`));
 };
-
-const defaultPreRule = () => true;
 
 /**
  * Refines the state associations, applying the pre-rule for each type of state
@@ -420,24 +331,15 @@ const defaultPreRule = () => true;
  * @type {BundledModifierFn}
  */
 const applyPreRules = (data) => {
-  for (const args of associationsHelper(data)) {
-    const [matcher, source] = args;
+  for (const [matcher, { source }] of associationsHelper(data)) {
     const theSet = getAssociationSet(source);
-    if (!theSet) continue;
-    if (!theSet.has(matcher.infoId)) continue;
+    if (!theSet?.has(matcher.infoId)) continue;
 
-    const preRuleFn = getProcessorFor(matcher.type, "preRules", defaultPreRule);
     const neighbors = makePreRuleIterators(matcher.stateEntry, source);
-    const result = preRuleFn(matcher, source, neighbors);
+    const result = matcher.stateEntry.preRules(matcher, source, neighbors);
     if (!result) theSet.delete(matcher.infoId);
   }
 };
-
-/** @type {StateValuatorFn} */
-const defaultValuator = () => 1;
-
-/** @type {StatePostRuleFn} */
-const defaultPostRule = () => true;
 
 /**
  * @template T
@@ -483,30 +385,6 @@ const toPostRuleIterators = (preRuleIter, scoresMap, usedEntries) => {
 };
 
 /**
- * Sorts entries in `StateDataCache.forContextMemory`.
- * 
- * @param {StateEngineCacheData} a 
- * @param {StateEngineCacheData} b 
- */
-const contextMemorySorter = (a, b) => {
-  // Sort by priority, higher coming first.
-  if (a.priority != null && b.priority != null)
-    return a.priority - b.priority;
-
-  const aEntry = currentEntriesMap[a.infoId];
-  const bEntry = currentEntriesMap[b.infoId];
-
-  const aRefs = bEntry.key ? aEntry.relations.includes(bEntry.key) : false;
-  const bRefs = aEntry.key ? bEntry.relations.includes(aEntry.key) : false;
-  // If they reference each other, place the one with more relations later.
-  if (aRefs && bRefs) return bEntry.relations.length - aEntry.relations.length;
-  // If one references the other, place the referencing entry afterward.
-  if (aRefs) return 1;
-  if (bRefs) return -1;
-  return 0;
-};
-
-/**
  * Runs the state valuators and picks a single entry per assocaition source,
  * except the `implicit` source, which may have more than one.
  * 
@@ -514,48 +392,24 @@ const contextMemorySorter = (a, b) => {
  */
 const superHappyRouletteTime = (data) => {
   const winnersArr = chain(associationsHelper(data))
-    .filter(([matcher, source]) => {
+    .filter(([matcher, { source }]) => {
       const theSet = getAssociationSet(source);
       if (!theSet) return false;
       return theSet.has(matcher.infoId);
     })
     // Group everything by their sources, because I'm lazy.
-    .thru((assoc) => groupBy(assoc, ([, source]) => source))
+    .thru((assoc) => groupBy(assoc, ([, { source }]) => source))
     // First, assign weights to all the entries in this group using the valuator,
     // and then add them to the roulette wheel.
     .map(([source, group]) => {
       /** @type {Roulette<MatchableEntry>} */
       const roulette = new Roulette();
 
-      for (const args of group) {
-        const [matcher, source, entry] = args;
-        const valuatorFn = getProcessorFor(matcher.type, "valuator", defaultValuator);
-        const weight = dew(() => {
-          let value = valuatorFn(matcher, source, entry);
-          // Short-circuit: entry can't win.
-          if (value == null) return 0;
-
-          if (!Array.isArray(value)) {
-            // Short-circuit: entry can't win.
-            if (value <= 0) return 0;
-
-            // We need to create a valuation array for this entry.
-            const text = entry && getText(entry);
-            const keywordsCount = matcher.stateEntry.include.length;
-            const uniqueKeywordsMatched = text ? matcher.uniqueOccurancesIn(text) : 0;
-
-            const keywordPart = uniqueKeywordsMatched === 0 ? 0.5 : uniqueKeywordsMatched / keywordsCount;
-            const relationsPart = matcher.stateEntry.relations.length + 1;
-            value = [value, keywordPart * 10, relationsPart];
-          }
-
-          const finalScore = value.reduce((prev, cur) => prev * cur, 1);
-          // Limit to range between 0 and 1000.
-          return Math.max(0, Math.min(1000, finalScore));
-        });
-        
-        if (weight === 0) continue;
-        roulette.push(weight, matcher);
+      for (const [matcher, { source, entry }] of group) {
+        let score = matcher.stateEntry.valuator(matcher, source, entry);
+        score = Math.max(0, Math.min(1000, score));
+        if (score === 0) continue;
+        roulette.push(score, matcher);
       }
 
       return tuple2(source, roulette);
@@ -564,9 +418,8 @@ const superHappyRouletteTime = (data) => {
     .map(([source, roulette]) => tuple2(source, [...spinToWin(roulette)]))
     // Materialize the result.
     .toArray();
-  
-  /** @type {ScoresMap} */
-  const scoresMap = chain(winnersArr)
+
+  scoresMap = chain(winnersArr)
     .map(([source, kvps]) => {
       const sourceMap = new Map(kvps.map(([matcher, score]) => tuple2(matcher.infoId, score)));
       return tuple2(source, sourceMap);
@@ -597,10 +450,9 @@ const superHappyRouletteTime = (data) => {
         if (usedEntryIds.has(infoId)) continue;
         if (usedTypes.has(type)) continue;
 
-        const postRuleFn = getProcessorFor(type, "postRules", defaultPostRule);
         const preIters = makePreRuleIterators(stateEntry, source);
         const neighbors = toPostRuleIterators(preIters, scoresMap, usedEntries);
-        const result = postRuleFn(matcher, source, score, neighbors);
+        const result = matcher.stateEntry.postRules(matcher, source, score, neighbors);
         if (!result) continue;
 
         usedEntryIds.add(infoId);
@@ -613,13 +465,12 @@ const superHappyRouletteTime = (data) => {
     }
     else {
       for (const [matcher, score] of theContestants) {
-        const { type, stateEntry, infoId } = matcher;
+        const { stateEntry, infoId } = matcher;
         if (usedEntryIds.has(infoId)) continue;
 
-        const postRuleFn = getProcessorFor(type, "postRules", defaultPostRule);
         const preIters = makePreRuleIterators(stateEntry, source);
         const neighbors = toPostRuleIterators(preIters, scoresMap, usedEntries);
-        const result = postRuleFn(matcher, source, score, neighbors);
+        const result = matcher.stateEntry.postRules(matcher, source, score, neighbors);
         if (!result) continue;
 
         usedEntryIds.add(infoId);
@@ -632,7 +483,14 @@ const superHappyRouletteTime = (data) => {
 
   // Finally, we must say goodbye to the unlucky ones...
   stateAssociations = theWinners;
+};
 
+/**
+ * Dumps everything into the game-state caches.
+ * 
+ * @type {BundledModifierFn}
+ */
+const updateCaches = ({ state }) => {
   // And now, we construct the object for the turn cache.
   /** @type {StateDataCache} */
   const newCacheData = {
@@ -645,7 +503,7 @@ const superHappyRouletteTime = (data) => {
     for (const id of theSet) {
       const entry = currentEntriesMap[id];
       const score = scoresMap.get(source)?.get(id) ?? 0;
-      const priority = worldStateDefinitions[entry.type].priority ?? null;
+      const priority = entry.priority ?? null;
       const entryData = { infoId: id, score, priority, source };
       switch (source) {
         case "implicit":
@@ -667,11 +525,19 @@ const superHappyRouletteTime = (data) => {
   }
 
   // Sort the context memory entries.
-  newCacheData.forContextMemory.sort(contextMemorySorter);
+  newCacheData.forContextMemory = chain(newCacheData.forContextMemory)
+    .thru(require("./entrySorting").entrySorter)
+    .map(({ order, ...data }) => data)
+    .toArray();
 
-  // Put it where it belongs, and we're done.
+  // Put it where it belongs.
   theCache.storage = newCacheData;
   theCache.commit();
+
+  // Finally, update the parsed entry cache and we're done!
+  state.$$stateDataCache = chain(toPairs(currentEntriesMap))
+    .map(([k, entry]) => [k, entry.toJSON()])
+    .value((kvps) => fromPairs(kvps));
 };
 
 const produceContextMemory = dew(() => {
@@ -765,26 +631,26 @@ const loadUpMemory = ({ state: { memory }, playerMemory, summary }) => {
 };
 
 /**
+ * Registers a `StateEnginEntry` class.
  * 
- * @param {StateEngineData["type"]} stateType 
- * @param {StateDefinition} processors 
+ * @param {typeof StateEngineEntry} entryClass
  */
-const addStateEntry = (stateType, processors) => {
-  worldStateDefinitions[stateType] = processors;
+const addStateEntry = (entryClass) => {
+  worldStateDefinitions[entryClass.forType] = entryClass;
 };
 
 module.exports.stateModule = {
   pre: [init],
   exec: [
     // Setting up the state entries.
-    updateStateEntries, validateStateEntries, modifyStateEntries, finalizeForProccessing,
+    createStateEntries, validateStateEntries, modifyStateEntries, finalizeForProccessing,
     // Crunching the data.
-    associateState, applyPreRules, superHappyRouletteTime
+    associateState, applyPreRules, superHappyRouletteTime,
+    // Ensure the caches are updated before `post`.
+    updateCaches
   ],
   post: [loadUpMemory]
 };
 
 module.exports.addStateEntry = addStateEntry;
-module.exports.checkKeywords = checkKeywords;
-module.exports.iterUsedKeys = iterUsedKeys;
 module.exports.worldStateDefinitions = worldStateDefinitions;

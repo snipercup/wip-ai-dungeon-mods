@@ -47,6 +47,12 @@ interface StateEngineData {
   exclude: string[];
 }
 
+interface StateDataForModifier extends StateEngineData {
+  relations: Set<string>;
+  include: Set<string>;
+  exclude: Set<string>;
+}
+
 type StateAssociations = Map<AssociationSources, Set<StateEngineEntry["infoId"]>>;
 
 interface GetAssociationSetFn {
@@ -62,67 +68,30 @@ interface StateModifierFn {
   (stateData: StateEngineData, allStates: StateEngineData[]): StateEngineData;
 }
 
-type AssociationSources = "implicit" | "implicitRef" | "playerMemory" | "authorsNote" | "frontMemory" | number;
 type UsedKeysMap = Map<number, Set<string>>;
-type AssociationHelperResult
-  = [MatchableEntry, "implicit"]
-  | [MatchableEntry, "implicitRef", StateEngineEntry]
-  | [MatchableEntry, "authorsNote"]
-  | [MatchableEntry, "frontMemory"]
-  | [MatchableEntry, "playerMemory", string]
-  | [MatchableEntry, number, HistoryEntry];
 
-interface StateAssociationFn {
-  (matcher: MatchableEntry, source: "implicit"): Maybe<boolean>;
-  (matcher: MatchableEntry, source: "implicitRef", stateData: StateEngineEntry): Maybe<boolean>;
-  (matcher: MatchableEntry, source: "authorsNote"): Maybe<boolean>;
-  (matcher: MatchableEntry, source: "frontMemory"): Maybe<boolean>;
-  (matcher: MatchableEntry, source: "playerMemory", text: string): Maybe<boolean>;
-  (matcher: MatchableEntry, source: number, historyEntry: HistoryEntry, usedKeys: UsedKeysMap): Maybe<boolean>;
+interface AssociationParamTypes {
+  "implicit": { source: "implicit" };
+  "implicitRef": { source: "implicitRef", entry: StateEngineEntry };
+  "playerMemory": { source: "playerMemory", entry: string };
+  "authorsNote": { source: "authorsNote" };
+  "frontMemory": { source: "frontMemory" };
+  "history": { source: number, entry: HistoryEntry, usedKeys: UsedKeysMap };
 }
 
-// TypeScript still can't do this itself!?
-type StateAssociationBaseFn = (
-  matcher: MatchableEntry,
-  source: AssociationSources,
-  entry?: StateEngineEntry | HistoryEntry | string,
-  usedKeys?: UsedKeysMap
-) => Maybe<boolean>;
+type AssociationParams = AssociationParamTypes[keyof AssociationParamTypes];
+type AssociationSources = AssociationParams["source"];
+// There's no reliable way to make TS generate this automatically.
+type FlatAssociationParams = { source: any, entry?: any, usedKeys?: any };
 
 type PreRuleIteratorResult = [otherEntry: StateEngineEntry, source: AssociationSources];
 type PreRuleIterator = () => Iterable<PreRuleIteratorResult>;
 interface PreRuleIterators {
+  getFor(source: AssociationSources): Iterable<PreRuleIteratorResult>;
   before: PreRuleIterator;
   current: PreRuleIterator;
   after: PreRuleIterator;
-  getFor(source: AssociationSources): Iterable<PreRuleIteratorResult>;
 }
-
-interface StatePreRuleFn {
-  /**
-   * @returns `true` if the state should be retained; `false` to remove it.
-   */
-  (matcher: MatchableEntry, source: AssociationSources, neighbors: PreRuleIterators): Maybe<boolean>;
-}
-
-interface StateValuatorFn {
-  /**
-   * @returns One of:
-   * - `number` - The base value to apply to the default calculation.
-   * - `number[]` - A set of values that will be multiplied together to create
-   *   a score; this is what the default valuator does under the hood.  If
-   *   you want it to use a specific score, just return something like `[calcScore()]`.
-   */
-  (matcher: MatchableEntry, source: AssociationSources, entry: StateEngineEntry | HistoryEntry | string): Maybe<number | number[]>;
-  (matcher: MatchableEntry, source: AssociationSources, entry?: unknown): Maybe<number | number[]>;
-}
-
-// TypeScript still can't do this itself!?
-type StateValuatorBaseFn = (
-  matcher: MatchableEntry,
-  source: AssociationSources,
-  entry?: StateEngineEntry | HistoryEntry | string
-) => Maybe<number | number[]>;
 
 type ScoresMap = Map<AssociationSources, Map<StateEngineEntry["infoId"], number>>;
 type PostRuleIteratorResult = [...PreRuleIteratorResult, score: number];
@@ -134,29 +103,6 @@ interface PostRuleIterators {
   after: PostRuleIterator;
   selected: PostRuleIterator;
 }
-
-interface StatePostRuleFn {
-  /**
-   * @returns `true` if the state should be retained; `false` to remove it.
-   */
-  (matcher: MatchableEntry, source: AssociationSources, score: number, neighbors: PostRuleIterators): Maybe<boolean>;
-}
-
-interface StateProcessors {
-  validator?: StateValidatorFn;
-  modifier?: StateModifierFn;
-  associator?: StateAssociationFn;
-  preRules?: StatePreRuleFn;
-  valuator?: StateValuatorFn;
-  postRules?: StatePostRuleFn;
-}
-
-interface StateDefinition extends StateProcessors {
-  priority?: number;
-}
-
-type AssertStateProcessor<TProc extends keyof StateProcessors>
-  = Required<StateProcessors>[TProc];
 
 interface StateEngineCacheData {
   infoId: StateEngineData["infoId"];

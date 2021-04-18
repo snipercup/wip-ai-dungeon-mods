@@ -1,6 +1,8 @@
 /// <reference path="../state-engine/state-engine.d.ts" />
-const { dew, getText, rollDice } = require("../utils");
-const { addStateEntry, checkKeywords, iterUsedKeys } = require("../state-engine/core");
+const { dew, getText, chain, rollDice } = require("../utils");
+const { isParamsFor } = require("../state-engine/utils");
+const { addStateEntry } = require("../state-engine/core");
+const { StateEngineEntry, checkKeywords, iterUsedKeys } = require("../state-engine/StateEngineEntry");
 
 // Configuration.
 /** NPC may be implicitly included based on chance. */
@@ -37,42 +39,64 @@ const init = (data) => {
   /**
    * We implicitly include the `key` for `Player` and `NPC` as a keyword.
    * 
-   * @param {StateEngineData} stateData 
-   * @returns {StateEngineData}
+   * @param {StateEngineEntry} entry 
+   * @returns {void}
    */
-  const addKeyAsKeyword = (stateData) => {
+  const addKeyAsKeyword = (entry) => {
     // Should not happen; to make TS happy.
-    if (!stateData.key) return stateData;
-
-    const keywordSet = new Set(stateData.include);
-    if (keywordSet.has(stateData.key)) return stateData;
-    keywordSet.add(stateData.key);
-    stateData.include = [...keywordSet];
-    return stateData;
+    if (!entry.key) return;
+    if (entry.include.has(entry.key)) return;
+    entry.include.add(entry.key);
   };
 
-  addStateEntry("Player", {
-    priority: 100,
-    validator(stateData) {
-      const issues = [];
-      if (!stateData.key)
-        issues.push(`World info entry \`${stateData.infoKey}\` must have a key.`);
-      if (stateData.relations.length)
-        issues.push(`World info entry \`${stateData.infoKey}\` cannot have relations.`);
+  class PlayerEntry extends StateEngineEntry {
+    static get forType() { return "Player"; }
+    get priority() { return 100; }
+
+    validator() {
+      const issues = super.validator();
+      if (!this.key)
+        issues.push(`World info entry \`${this.infoKey}\` must have a key.`);
+      if (this.relations.size)
+        issues.push(`World info entry \`${this.infoKey}\` cannot have relations.`);
       return issues;
-    },
-    modifier: addKeyAsKeyword,
-    /** @type {StateAssociationBaseFn} */
-    associator(matcher, source) {
+    }
+
+    modifier() {
+      // Add the character's name as a keyword.
+      addKeyAsKeyword(this);
+    }
+
+    /**
+     * @param {MatchableEntry} matcher 
+     * @param {AssociationParams} params 
+     * @returns {boolean}
+     */
+    associator(matcher, params) {
       // Always include it implicitly when there's only a single player.
-      if (source === "implicit" && info.characters.length <= 1) return true;
+      if (isParamsFor("implicit", params) && info.characters.length <= 1) return true;
       // Use the default associator, otherwise.
-      return undefined;
-    },
-    valuator() {
+      return super.associator(matcher, params);
+    }
+
+    /**
+     * @param {MatchableEntry} matcher
+     * @param {AssociationSources} source
+     * @param {StateEngineEntry | HistoryEntry | string} entry
+     * @returns {number}
+     */
+    valuator(matcher, source, entry) {
       // Give these entries a higher score.
-      return 10;
-    },
+      return super.valuator(matcher, source, entry, 10);
+    }
+
+    /**
+     * @param {MatchableEntry} matcher 
+     * @param {AssociationSources} source 
+     * @param {number} score 
+     * @param {PostRuleIterators} neighbors 
+     * @returns {boolean}
+     */
     postRules(matcher, source, score, neighbors) {
       // Always retain when implicit.
       if (source === "implicit") return true;
@@ -80,180 +104,249 @@ const init = (data) => {
       if (typeof source !== "number") return false;
       // If this entry is already included implicitly, drop this association.
       for (const [otherEntry] of neighbors.getFor("implicit"))
-        if (otherEntry.infoId === matcher.infoId) return false;
+        if (otherEntry.infoId === this.infoId) return false;
       return false;
     }
-  });
+  }
 
-  addStateEntry("NPC", {
-    priority: 90,
-    validator(stateData) {
-      const issues = [];
-      if (!stateData.key)
-        issues.push(`World info entry \`${stateData.infoKey}\` must have a key.`);
-      if (stateData.relations.length)
-        issues.push(`World info entry \`${stateData.infoKey}\` cannot have relations.`);
+  class NpcEntry extends StateEngineEntry {
+    static get forType() { return "NPC"; }
+    get priority() { return 90; }
+
+    validator() {
+      const issues = super.validator();
+      if (!this.key)
+        issues.push(`World info entry \`${this.infoKey}\` must have a key.`);
+      if (this.relations.size)
+        issues.push(`World info entry \`${this.infoKey}\` cannot have relations.`);
       return issues;
-    },
-    modifier: addKeyAsKeyword,
-    /** @type {StateAssociationBaseFn} */
-    associator(matcher, source) {
+    }
+
+    modifier() {
+      // Add the character's name as a keyword.
+      addKeyAsKeyword(this);
+    }
+
+    /**
+     * @param {MatchableEntry} matcher 
+     * @param {AssociationParams} params 
+     * @returns {boolean}
+     */
+    associator(matcher, params) {
       const diceSize = npcImplicitInclusionDiceSides;
       // Has a chance of being implicitly included.
-      if (source === "implicit") return rollDice(1, diceSize) === diceSize;
+      if (isParamsFor("implicit", params)) return rollDice(1, diceSize) === diceSize;
       // Otherwise, only valid when processing the `history` and current `text`.
-      if (typeof source !== "number") return false;
+      if (!isParamsFor("history", params)) return false;
       // Use the default associator from here on.
-      return undefined;
-    },
-    /** @type {StateValuatorBaseFn} */
-    valuator(matcher, source) {
-      // Give these entries a higher, in general, but the biggest boost if they
-      // are actually mentioned in the text.
-      return source === "implicit" ? 4 : 8;
+      return super.associator(matcher, params);
     }
-  });
 
-  addStateEntry("Location", {
-    priority: 50,
-    validator(stateData) {
-      const issues = [];
-      if (stateData.key)
-        issues.push(`World info entry \`${stateData.infoKey}\` cannot be given a key.`);
-      if (stateData.include.length || stateData.exclude.length)
-        issues.push(`World info entry \`${stateData.infoKey}\` cannot be given keywords.`);
+    /**
+     * @param {MatchableEntry} matcher
+     * @param {AssociationSources} source
+     * @param {StateEngineEntry | HistoryEntry | string} entry
+     * @returns {number}
+     */
+    valuator(matcher, source, entry) {
+      // Give these entries a higher score, in general, but the biggest boost if
+      // they are actually mentioned in the text.
+      const scalar = source === "implicit" ? 4 : 8;
+      return super.valuator(matcher, source, entry, scalar);
+    }
+  }
+
+  class LocationEntry extends StateEngineEntry {
+    static get forType() { return "Location"; }
+    get priority() { return 50; }
+
+    validator() {
+      const issues = super.validator();
+      if (this.key)
+        issues.push(`World info entry \`${this.infoKey}\` cannot be given a key.`);
+      if (this.include.size || this.exclude.size)
+        issues.push(`World info entry \`${this.infoKey}\` cannot be given keywords.`);
       return issues;
-    },
-    /** @type {StateAssociationBaseFn} */
-    associator(matcher, source) {
+    }
+
+    /**
+     * @param {MatchableEntry} matcher 
+     * @param {AssociationParams} params 
+     * @returns {boolean}
+     */
+    associator(matcher, { source }) {
       // Only associate implicitly.
       return source === "implicit";
-    },
+    }
+
     valuator() {
       // Give these entries a flat score.
-      return [40];
+      return 40;
     }
-  });
+  }
 
   /** @type {Set<StateEngineEntry["infoId"]>} */
   const loreWithMatchedStates = new Set();
 
-  addStateEntry("Lore", {
-    validator() {
-      // Anything goes with lore entries.
-      return [];
-    },
-    modifier(stateData, allStates) {
-      if (stateData.key == null) return stateData;
-      if (stateData.include.length !== 0) return stateData;
+  class LoreEntry extends StateEngineEntry {
+    static get forType() { return "Lore"; }
+
+    /**
+     * @param {Map<string, StateDataForModifier>} allStates
+     * @returns {void}
+     */
+    modifier(allStates) {
+      if (this.key == null) return;
+      if (this.include.size > 0) return;
+      const { relations: ownRelations } = this;
 
       // If a `$Lore` has the same `key` as another entry of the same type,
       // and this entry lacks inclusive keywords, but the other does not, we'll
       // copy those keywords to this entry.  This makes it a little less irritating
       // to create multiple lore entries for the same concept or thing.
       // Only works for lore entries with no exclusion keywords.
-      const duplicateEntries = allStates
-        .filter((sd) => sd.type === stateData.type)
-        .filter((sd) => sd.key === stateData.key)
-        .filter((sd) => sd.include.length > 0)
-        .filter((sd) => sd.exclude.length === 0)
-        .filter((sd) => sd.relations.length === stateData.relations.length);
+      const duplicateEntries = chain(allStates.values())
+        .filter((sd) => sd.type === this.type)
+        .filter((sd) => sd.key === this.key)
+        .filter((sd) => sd.include.size > 0)
+        .filter((sd) => sd.exclude.size === 0)
+        .filter((sd) => sd.relations.size === ownRelations.size)
+        .toArray();
       
       // Must be exactly one match for this to apply.
-      if (duplicateEntries.length !== 1) return stateData;
+      if (duplicateEntries.length !== 1) return;
 
       // They must also share the same relations, if they have them.
       const [choosenEntry] = duplicateEntries;
-      if (stateData.relations.length > 0) {
-        const thisSet = new Set(stateData.relations);
+      if (ownRelations.size > 0)
         for (const otherRel of choosenEntry.relations)
-          if (!thisSet.has(otherRel)) return stateData;
-      }
+          if (!ownRelations.has(otherRel)) return;
 
-      stateData.include = [...choosenEntry.include];
-      return stateData;
-    },
+      this.include = new Set([...choosenEntry.include]);
+    }
+
+    /**
+     * @param {MatchableEntry} matcher
+     * @param {AssociationSources} source
+     * @param {PreRuleIterators} neighbors
+     * @returns {boolean}
+     */
     preRules(matcher, source, neighbors) {
       // Do some pre-processing, looking for matching `State` entries that
       // reference this `Lore`.
-      const { key, infoId } = matcher.stateEntry;
+      const { key, infoId } = this;
       if (!key) return true;
 
       for (const [otherEntry] of neighbors.after()) {
         if (otherEntry.type !== "State") continue;
-        if (!otherEntry.relations.includes(key)) continue;
+        if (!otherEntry.relations.has(key)) continue;
         loreWithMatchedStates.add(infoId);
+        break;
       }
 
       return true;
-    },
-    /** @type {StateValuatorBaseFn} */
-    valuator(matcher) {
-      // Give a boost if this `Lore` was referenced by a later `State`.
-      if (loreWithMatchedStates.has(matcher.infoId)) return 5;
-      return undefined;
     }
-  });
 
-  addStateEntry("State", {
-    validator(stateData) {
-      const issues = [];
-      if (!stateData.key)
-        issues.push(`World info entry \`${stateData.infoKey}\` must have a key.`);
+    /**
+     * @param {MatchableEntry} matcher
+     * @param {AssociationSources} source
+     * @param {StateEngineEntry | HistoryEntry | string} entry
+     * @returns {number}
+     */
+    valuator(matcher, source, entry) {
+      // Give a boost if this `Lore` was referenced by a later `State`.
+      const scalar = loreWithMatchedStates.has(matcher.infoId) ? 5 : 1;
+      return super.valuator(matcher, source, entry, scalar);
+    }
+  }
+
+  class StateEntry extends StateEngineEntry {
+    static get forType() { return "State"; }
+
+    validator() {
+      const issues = super.validator();
+      if (!this.key)
+        issues.push(`World info entry \`${this.infoKey}\` must have a key.`);
       return issues;
-    },
-    modifier(stateData, allStates) {
-      if (stateData.key == null) return stateData;
+    }
+
+    /**
+     * @param {Map<string, StateDataForModifier>} allStates
+     * @returns {void}
+     */
+    modifier(allStates) {
+      if (this.key == null) return;
 
       // If a `$State` has the same `key` as another entry of a different type,
       // we'll implicitly make it related to it.
-      const duplicateEntries = allStates
-        .filter((sd) => sd.type !== stateData.type)
-        .filter((sd) => sd.key === stateData.key);
-      
-      if (duplicateEntries.length === 0) return stateData;
+      const duplicateEntries = chain(allStates.values())
+        .filter((sd) => sd.type !== this.type)
+        .filter((sd) => sd.key === this.key)
+        .toArray();
 
-      const addedRelation = new Set([...stateData.relations, stateData.key]);
-      stateData.relations = [...addedRelation];
-      return stateData;
-    },
-    /** @type {StateAssociationBaseFn} */
-    associator(matcher, source, entry, usedKeys) {
-      const { stateEntry: stateData } = matcher;
+      if (duplicateEntries.length === 0) return;
+      this.relations = new Set([...this.relations, this.key]);
+    }
 
+    /**
+     * @param {MatchableEntry} matcher 
+     * @param {AssociationParams} params 
+     * @returns {boolean}
+     */
+    associator(matcher, params) {
       // Only valid when processing the `history` and current `text`.
-      if (!usedKeys || typeof source !== "number") return false;
+      if (!isParamsFor("history", params)) return false;
       // Use the default matcher if we have no relations to worry about.
-      if (stateData.relations.length === 0) return undefined;
+      if (this.relations.size === 0) return super.associator(matcher, params);
 
       // First, check the keywords.
-      if (!checkKeywords(matcher, getText(entry))) return false;
+      const text = getText(params.entry).trim();
+      if (!checkKeywords(matcher, text)) return false;
+
+      const { source, usedKeys } = params;
 
       // The "State" type is a little bit different.  It's for immediately relevant
       // information.  When it has relations, we want to only associate this with
       // entries that are nearby to the related matches.  We define this as being
       // within 3 history entries.
       const validForRelations = dew(() => {
-        if (stateData.relations.length === 0) return true;
         const nearbyUsedKeys = new Set(iterUsedKeys(usedKeys, source, source + 2));
-        return stateData.relations.every((key) => nearbyUsedKeys.has(key));
+        for (const key of this.relations)
+          if (!nearbyUsedKeys.has(key)) return false;
+        return true;
       });
       if (!validForRelations) return false;
-      if (!stateData.key) return true;
+      if (!this.key) return true;
 
       // If our `key` is also used in one of our relations, do not add it to
       // the `usedKeys` map, but do associate with the source.
-      if (stateData.relations.includes(stateData.key)) return true;
+      if (this.relations.has(this.key)) return true;
   
       const theKeys = usedKeys.get(source) ?? new Set();
-      theKeys.add(stateData.key);
+      theKeys.add(this.key);
       usedKeys.set(source, theKeys);
       return true;
-    },
-    valuator() {
+    }
+
+    /**
+     * @param {MatchableEntry} matcher
+     * @param {AssociationSources} source
+     * @param {StateEngineEntry | HistoryEntry | string} entry
+     * @returns {number}
+     */
+    valuator(matcher, source, entry) {
       // Give these entries a higher score.
-      return 10;
-    },
+      return super.valuator(matcher, source, entry, 10);
+    }
+
+    /**
+     * 
+     * @param {MatchableEntry} matcher
+     * @param {AssociationSources} source
+     * @param {number} score
+     * @param {PostRuleIterators} neighbors
+     * @returns {boolean}
+     */
     postRules(matcher, source, score, neighbors) {
       // Limit to 2 of these.
       let curCount = 0;
@@ -264,7 +357,13 @@ const init = (data) => {
       }
       return true;
     }
-  });
+  }
+
+  addStateEntry(PlayerEntry);
+  addStateEntry(NpcEntry);
+  addStateEntry(LocationEntry);
+  addStateEntry(LoreEntry);
+  addStateEntry(StateEntry);
 };
 
 module.exports.stateModule = {

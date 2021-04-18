@@ -214,6 +214,23 @@ module.exports.mapIter = function* (iterable, transformFn) {
 };
 
 /**
+ * Creates an iterable that transforms values, and yields the result if it is
+ * not `undefined`.
+ * 
+ * @template TIn
+ * @template TOut
+ * @param {Iterable<TIn>} iterable 
+ * @param {CollectFn<TIn, TOut>} collectFn
+ * @returns {Iterable<TOut>}
+ */
+module.exports.collectIter = function* (iterable, collectFn) {
+  for (const value of iterable) {
+    const result = collectFn(value);
+    if (typeof result !== "undefined") yield result;
+  }
+};
+
+/**
  * Filters the given iterable to those values that pass a predicate.
  * 
  * @template T
@@ -232,7 +249,7 @@ module.exports.mapIter = function* (iterable, transformFn) {
  * 
  * @template TValue
  * @template TKey
- * @param {Iterable<TValue>} iterable 
+ * @param {Iterable<TValue>} iterable
  * @param {TransformFn<TValue, TKey>} transformFn
  * @returns {Iterable<[TKey, TValue[]]>}
  */
@@ -248,6 +265,21 @@ module.exports.groupBy = function* (iterable, transformFn) {
   }
 
   for (const group of groups) yield group;
+};
+
+/**
+ * Creates an iterable that groups key-value-pairs when they share the same key.
+ * 
+ * @template TValue
+ * @template TKey
+ * @param {Iterable<[TKey, TValue]>} iterable
+ * @returns {Iterable<[TKey, TValue[]]>}
+ */
+module.exports.partition = function* (iterable) {
+  for (const [key, values] of module.exports.groupBy(iterable, ([key]) => key)) {
+    const group = values.map(([, value]) => value);
+    yield [key, group];
+  }
 };
 
 /**
@@ -322,7 +354,7 @@ module.exports.tapEach = function* (iterable, tapFn) {
 
 /** @type {ChainingFn} */
 module.exports.chain = module.exports.dew(() => {
-  const { mapIter, filterIter, concat, tapEach, tapAll, flatten } = module.exports;
+  const { mapIter, filterIter, collectIter, concat, tapEach, tapAll, flatten } = module.exports;
   // @ts-ignore - Should be checked.
   const chain = (iterable) => {
     iterable = iterable ?? [];
@@ -333,6 +365,8 @@ module.exports.chain = module.exports.dew(() => {
       flatten: () => chain(flatten(iterable)),
       // @ts-ignore - Fitting an overloaded method; TS can't handle it.
       filter: (predicateFn) => chain(filterIter(iterable, predicateFn)),
+      // @ts-ignore - Fitting an overloaded method; TS can't handle it.
+      collect: (collectFn) => chain(collectIter(iterable, collectFn)),
       concat: (...others) => chain(concat(iterable, ...others)),
       thru: (transformFn) => chain(transformFn(iterable)),
       tap: (tapFn) => chain(tapEach(iterable, tapFn)),

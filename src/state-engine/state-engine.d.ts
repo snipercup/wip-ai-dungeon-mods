@@ -151,6 +151,6 @@ declare interface GameState {
 
 declare module "aid-bundler/src/aidData" {
   interface AIDData {
-    matchCounter: (str: string, regex: RegExp) => number;
+    stateEngineContext: import("./core/types").Context;
   }
 }

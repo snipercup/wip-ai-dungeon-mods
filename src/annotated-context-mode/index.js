@@ -49,6 +49,7 @@ const contextModifier = (data) => {
   // The summary is counted as a part of the story text instead of the memory.
   const summaryText = dew(() => {
     if (!summary) return [];
+    // @ts-ignore - TS too dumb with `??` and `[]`.
     const [, fixedSummary] = reStorySoFar.exec(summary) ?? [];
     if (!fixedSummary) return [];
     const theSummary = cleanText(fixedSummary);

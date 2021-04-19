@@ -254,7 +254,7 @@ exports.sortingHelpers = (theEntries) => {
 };
 
 /**
- * @param {ReturnType<module["exports"]["sortingHelpers"]>} helpers
+ * @param {ReturnType<exports["sortingHelpers"]>} helpers
  * @returns {SortingFn}
  */
 exports.buildSorter = (helpers) => {
@@ -345,7 +345,7 @@ exports.buildSorter = (helpers) => {
  * related entries.
  * 
  * @param {SortableEntry[]} orderedEntries
- * @param {ReturnType<module["exports"]["sortingHelpers"]>} helpers
+ * @param {ReturnType<exports["sortingHelpers"]>} helpers
  * @returns {SortingFn}
  */
 exports.buildGrouper = (orderedEntries, helpers) => {

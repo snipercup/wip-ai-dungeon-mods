@@ -1,12 +1,7 @@
-/// <reference path="../state-engine/state-engine.d.ts" />
-const { isParamsFor } = require("../state-engine/utils");
-const { addStateEntry } = require("../state-engine/core");
-const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
-
-/**
- * A simple state entry type for the vanilla world info, for backward compatibility
- * with the standard system.
- */
+/// <reference path="./state-engine.d.ts" />
+const { isParamsFor } = require("./utils");
+const { addStateEntry } = require("./registry");
+const { StateEngineEntry } = require("./StateEngineEntry");
 
 /**
  * Does some global setup for this module.
@@ -14,6 +9,10 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
  * @type {BundledModifierFn}
  */
  const init = () => {
+  /**
+   * A simple state entry type for the vanilla world info, for backward compatibility
+   * with the standard system.
+   */
   class VanillaEntry extends StateEngineEntry {
     static get forType() { return "VanillaEntry"; }
 

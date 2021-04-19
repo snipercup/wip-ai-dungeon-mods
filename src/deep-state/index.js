@@ -1,7 +1,7 @@
 /// <reference path="../state-engine/state-engine.d.ts" />
 const { dew, getText, chain, rollDice } = require("../utils");
+const { addStateEntry } = require("../state-engine/registry");
 const { isParamsFor } = require("../state-engine/utils");
-const { addStateEntry } = require("../state-engine/core");
 const { StateEngineEntry, checkKeywords, iterUsedKeys } = require("../state-engine/StateEngineEntry");
 
 // Configuration.

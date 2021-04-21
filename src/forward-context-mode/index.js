@@ -8,7 +8,7 @@ const { entrySorter } = require("../state-engine/entrySorting");
 const { entrySelector } = require("../state-engine/entrySelection");
 
 const MAX_MEMORY_FACTOR = 1/3;
-const NOTES = "Reader's Notes:";
+const NOTES = "Narrator's Notes:";
 const BREAK = "--------";
 
 /** @type {BundledModifierFn} */
@@ -36,7 +36,7 @@ const contextModifier = (data) => {
     if (!authorsNote) return "";
     const theStyle = cleanText(authorsNote);
     if (theStyle.length === 0) return "";
-    return ["[Author's Note: ", ...theStyle.join(" "), "]"].join("");
+    return ["[Direction: ", ...theStyle.join(" "), "]"].join("");
   });
 
   const styleLength = joinedLength(styleText);

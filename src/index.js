@@ -4,6 +4,7 @@ const withMemory = require("./with-memory");
 const worldControl = require("./world-control");
 const stateEngine = require("./state-engine");
 const deepState = require("./deep-state");
+const director = require("./director");
 const contextMode = require("./context-mode");
 const annotatedMode = require("./annotated-context-mode");
 const forwardMode = require("./forward-context-mode");
@@ -40,7 +41,7 @@ withMemory.addPlugin(pipeline);
 
 worldControl.addPlugin(pipeline);
 
-stateEngine.addPlugin(pipeline, deepState.stateModule);
+stateEngine.addPlugin(pipeline, deepState.stateModule, director.stateModule);
 
 contextMode.addPlugin(pipeline, annotatedMode.contextModeModule, forwardMode.contextModeModule);
 

@@ -91,13 +91,32 @@ const contextModifier = (data) => {
 
   const storyText = dew(() => {
     // This comes behind the history we emit.
-    const theSummary = cleanText(summary);
+    const theSummary = cleanText(summary).reverse();
     const summaryLength = joinedLength(theSummary);
     // This comes in front of the history we emit.
-    const theFrontMemory = cleanText(frontMemory).reverse();
-    return chain(theFrontMemory)
+    return chain([frontMemory])
       .concat(historyData)
       .map(getText)
+      // Break the story text into individual lines, so that we can potentially
+      // include one more line of story text before hitting the limit.
+      .map((s) => s.split("\n").reverse())
+      .flatten()
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .thru((story) => limitText(
+        story,
+        // Have to account for the new lines...
+        // @ts-ignore - Not typing the `reduce` correctly.
+        maxChars - [notesLength, BREAK, summaryLength, styleLength].reduce(sumOfUsed(), 0),
+        {
+          // Here we account for the new line separating each line of the story.
+          lengthGetter: (text) => text ? text.length + 1 : 0
+        }
+      ))
+      // Finally, lets insert the `styleText` on the third line-break
+      // from the end of the context.  This will make sure it's closer
+      // to the end of the context, and will hopefully have more weight
+      // with the AI.
       .thru(function* (story) {
         if (styleText) {
           for (const [pos, text] of iterPosition(story)) {
@@ -107,19 +126,8 @@ const contextModifier = (data) => {
         }
         else yield* story;
       })
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .thru((storyText) => limitText(
-        storyText,
-        // Have to account for the new lines...
-        // @ts-ignore - Not typing the `reduce` correctly.
-        maxChars - [BREAK, summaryLength, notesLength].reduce(sumOfUsed(), 0),
-        {
-          // Here we account for the new line separating each line of the story.
-          lengthGetter: (text) => text ? text.length + 1 : 0
-        }
-      ))
-      .thru((storyText) => [BREAK, ...theSummary, ...iterReverse(storyText)])
+      .concat(theSummary, BREAK)
+      .thru(iterReverse)
       .value();
   });
 

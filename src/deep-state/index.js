@@ -2,7 +2,7 @@
 const { dew, getText, chain, rollDice } = require("../utils");
 const { addStateEntry } = require("../state-engine/registry");
 const { isParamsFor } = require("../state-engine/utils");
-const { StateEngineEntry, checkKeywords, iterUsedKeys } = require("../state-engine/StateEngineEntry");
+const { StateEngineEntry, iterUsedKeys } = require("../state-engine/StateEngineEntry");
 
 // Configuration.
 /** NPC may be implicitly included based on chance. */
@@ -300,36 +300,42 @@ const init = (data) => {
     associator(matcher, params) {
       // Only valid when processing the `history` and current `text`.
       if (!isParamsFor("history", params)) return false;
-      // Use the default matcher if we have no relations to worry about.
-      if (this.relations.size === 0) return super.associator(matcher, params);
+      return super.associator(matcher, params);
+    }
 
-      // First, check the keywords.
-      const text = getText(params.entry).trim();
-      if (!checkKeywords(matcher, text)) return false;
-
+    /**
+     * The "State" type is a little bit different.  It's for immediately relevant
+     * information.  When it has relations, we want to only associate this with
+     * entries that are nearby to the related matches.  We define this as being
+     * within 3 history entries.
+     * 
+     * @param {MatchableEntry} matcher
+     * @param {AssociationParams} params
+     * @returns {boolean}
+     * Whether this entry's relations were satisfied for this source.
+     */
+    checkRelations(matcher, params) {
+      if (!isParamsFor("history", params)) return false;
       const { source, usedKeys } = params;
 
-      // The "State" type is a little bit different.  It's for immediately relevant
-      // information.  When it has relations, we want to only associate this with
-      // entries that are nearby to the related matches.  We define this as being
-      // within 3 history entries.
-      const validForRelations = dew(() => {
-        const nearbyUsedKeys = new Set(iterUsedKeys(usedKeys, source, source + 2));
-        for (const key of this.relations)
-          if (!nearbyUsedKeys.has(key)) return false;
-        return true;
-      });
-      if (!validForRelations) return false;
-      if (!this.key) return true;
-
-      // If our `key` is also used in one of our relations, do not add it to
-      // the `usedKeys` map, but do associate with the source.
-      if (this.relations.has(this.key)) return true;
-  
-      const theKeys = usedKeys.get(source) ?? new Set();
-      theKeys.add(this.key);
-      usedKeys.set(source, theKeys);
+      if (this.relations.size === 0) return true;
+      const nearbyUsedKeys = new Set(iterUsedKeys(usedKeys, source, source + 2));
+      for (const key of this.relations)
+        if (!nearbyUsedKeys.has(key)) return false;
       return true;
+    }
+
+    /**
+     * Only adds the key to `usedKeys` if its key does not appear in its own relations.
+     * 
+     * @param {AssociationParams} params 
+     * @returns {void}
+     */
+    recordKeyUsage(params) {
+      // If our `key` is also used in one of our relations, do not add it to
+      // the `usedKeys` map.
+      if (!this.key || this.relations.has(this.key)) return;
+      super.recordKeyUsage(params);
     }
 
     /**

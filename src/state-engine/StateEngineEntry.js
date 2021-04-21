@@ -131,19 +131,6 @@ exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
   }
 }
 
-/**
- * Checks the `text` against the keywords of the given `matcher`.
- * 
- * @param {MatchableEntry} matcher
- * @param {string} text
- */
-exports.checkKeywords = (matcher, text) => {
-  if (!text) return false;
-  if (matcher.hasExcludedWords(text)) return false;
-  if (!matcher.hasIncludedWords(text)) return false;
-  return true;
-};
-
 class BadStateEntryError extends Error {
   /**
    * @param {string} message
@@ -303,38 +290,86 @@ class StateEngineEntry {
    * Whether this entry should be associated with this source.
    */
   associator(matcher, params) {
-    // Default associator does not do implicit reference associations.
-    if (isParamsFor("implicitRef", params)) return false;
-
     // The default associator requires text to do any form of matching.
     if (!isParamsTextable(params)) return false;
+    // But does not do implicit reference associations; child classes must implement
+    // that for themselves.
+    if (isParamsFor("implicitRef", params)) return false;
+
+    if (!this.checkKeywords(matcher, params)) return false;
+    if (!this.checkRelations(matcher, params)) return false;
+
+    this.recordKeyUsage(params);
+    return true;
+  }
+
+  /**
+   * A helper method that checks if the entry's keywords are matched in the text.
+   * 
+   * Returns `true` when:
+   * - This entry has no keywords that could or could not be matched.
+   * - The source has text and at least one inclusive and zero exclusive keywords
+   *   were matched.
+   * 
+   * @param {MatchableEntry} matcher
+   * @param {AssociationParams} params
+   * @returns {boolean}
+   * Whether this entry's relations were satisfied for this source.
+   */
+  checkKeywords(matcher, params) {
+    const hasKeywords = (matcher.include.length + matcher.exclude.length) > 0;
+    // Pass it by default if it has no keywords to match.
+    if (!hasKeywords) return true;
+    // If this source has no text, we fail the match.
+    if (!isParamsTextable(params)) return false;
+    
     const text = getText(params.entry).trim();
+    if (!text) return false;
+    if (matcher.hasExcludedWords(text)) return false;
+    if (!matcher.hasIncludedWords(text)) return false;
+    return true;
+  }
 
-    // Check keywords.
-    if (!exports.checkKeywords(matcher, text)) return false; 
-
-    // We're done if we can't process relations.
+  /**
+   * A helper method that checks if this entry's relations are referenced in other
+   * entries.
+   * 
+   * Returns `true` when:
+   * - This source is not `"history"`.
+   * - It doesn't have any relations to check for.
+   * - The entry's relations are satisfied.
+   * 
+   * @param {MatchableEntry} matcher
+   * @param {AssociationParams} params
+   * @returns {boolean}
+   * Whether this entry's relations were satisfied for this source.
+   */
+  checkRelations(matcher, params) {
     if (!isParamsFor("history", params)) return true;
     const { source, usedKeys } = params;
 
-    // The default associator looks at the entire history up to this point
-    // for matching references.
-    const validForRelations = dew(() => {
-      if (this.relations.size === 0) return true;
-      const allUsedKeys = new Set(exports.iterUsedKeys(usedKeys, source));
-      for (const key of this.relations)
-        if (!allUsedKeys.has(key)) return false;
-      return true;
-    });
-    if (!validForRelations) return false;
+    if (this.relations.size === 0) return true;
+    const allUsedKeys = new Set(exports.iterUsedKeys(usedKeys, source));
+    for (const key of this.relations)
+      if (!allUsedKeys.has(key)) return false;
+    return true;
+  }
 
-    // Record this key's usage, if needed.
-    if (!this.key) return true;
+  /**
+   * Handles the recording of the entry's key in `usedKeys` for history sources.
+   * This is safe to call, even if the source is not for the history.
+   * 
+   * @param {AssociationParams} params 
+   * @returns {void}
+   */
+  recordKeyUsage(params) {
+    if (!this.key) return;
+    if (!isParamsFor("history", params)) return;
 
+    const { source, usedKeys } = params;
     const theKeys = usedKeys.get(source) ?? new Set();
     theKeys.add(this.key);
     usedKeys.set(source, theKeys);
-    return true;
   }
 
   /**

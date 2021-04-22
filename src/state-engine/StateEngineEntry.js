@@ -32,6 +32,14 @@ exports.regex = {
    */
   infoFullKey: /^(\w+?)(?::\s*?(.*))?$/,
   /**
+   * Parses a relation set, only.  It must contain `&`.
+   * - "Ike & Marth" => `[undefined, "Ike & Marth"]`
+   * - "Ike & Marth & Lucina" => `[undefined, "Ike & Marth & Lucina"]`
+   * 
+   * Used as a fallback if `infoFullKey` fails to match anything.
+   */
+  infoRelOnly: /^()((?:\w+(?: *& *)?)*)$/,
+  /**
    * Parses a keyword part:
    * - "()" => `[undefined]`
    * - "(temple; ancient)" => `["temple; ancient"]`
@@ -87,7 +95,7 @@ exports.parseKeywords = (keywords, reMatcher) => {
  */
 exports.infoKeyParserImpl = (infoId, infoKey) => {
   const {
-    infoEntry, infoDeclaration, infoFullKey,
+    infoEntry, infoDeclaration, infoFullKey, infoRelOnly,
     includedKeyword, excludedKeyword
   } = exports.regex;
 
@@ -97,7 +105,10 @@ exports.infoKeyParserImpl = (infoId, infoKey) => {
   const [, fullKey, keywordPart] = infoDeclaration.exec(dec) ?? [];
   // Full-key part parsing.
   // @ts-ignore - TS too dumb with `??` and `[]`.
-  const [, key = null, relationPart] = (fullKey && infoFullKey.exec(fullKey)) ?? [];
+  const [, key = null, relationPart] = dew(() => {
+    if (!fullKey) return [];
+    return infoFullKey.exec(fullKey) ?? infoRelOnly.exec(fullKey) ?? [];
+  });
   const relations = relationPart?.split("&").map(s => s.trim()).filter(Boolean) ?? [];
   // Keyword part parsing.
   const keywords = keywordPart?.split(";").map(s => s.trim()).filter(Boolean) ?? [];

@@ -37,6 +37,41 @@ pipeline.commandHandler.addCommand(new SimpleCommand(
   })
 );
 
+pipeline.commandHandler.addCommand(new SimpleCommand(
+  "report-prop",
+  (data, args) => {
+    if (args.length === 0) return "No property path provided.";
+    /** @type {string[]} */
+    const traveledPath = [];
+    /** @type {unknown} */
+    let currentRef = globalThis;
+    for (const key of args) {
+      // @ts-ignore - We're doing checked object exploration.
+      currentRef = currentRef[key];
+      const typeOfRef = typeof currentRef;
+      // Decorate the key based on certain object types.
+      const descriptiveKey
+        = typeOfRef === "function" ? `${key}(?)`
+        : Array.isArray(currentRef) ? `${key}[?]`
+        : key;
+      traveledPath.push(descriptiveKey);
+
+      if (typeOfRef === "undefined") return `${traveledPath.join(".")} is \`undefined\``;
+      if (typeOfRef === "string") return `${traveledPath.join(".")} is a string:\n${String(currentRef)}`;
+      if (typeOfRef !== "object") return `${traveledPath.join(".")} is \`${String(currentRef)}\``;
+      if (currentRef === null) return `${traveledPath.join(".")} is \`null\``;
+    }
+
+    if (typeof currentRef === "function") {
+      if (!currentRef.name) return `${traveledPath.join(".")} is a function`;
+      return `${traveledPath.join(".")} is a function named \`${currentRef.name}\``
+    }
+
+    console.log(currentRef);
+    return `${traveledPath.join(".")} was logged to console.`;
+  })
+);
+
 withMemory.addPlugin(pipeline);
 
 worldControl.addPlugin(pipeline);

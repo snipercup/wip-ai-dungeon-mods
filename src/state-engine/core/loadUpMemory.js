@@ -74,7 +74,7 @@ module.exports = (data) => {
   if (newContextMem) memory.context = newContextMem;
   
   // Only set these if it is not already set by something else.
-  if (cacheData.forAuthorsNote && !memory.authorsNote) {
+  if (cacheData.forAuthorsNote) {
     const entry = ctx.entriesMap[cacheData.forAuthorsNote.infoId];
     const newAuthorsNote = getText(entry).trim();
     if (newAuthorsNote) memory.authorsNote = newAuthorsNote;

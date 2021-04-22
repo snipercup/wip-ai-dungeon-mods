@@ -163,10 +163,12 @@ exports.commands = [
     const newNote = args.join(" ");
     if (!newNote) {
       delete data.state.memory.authorsNote;
+      data.state.$$setAuthorsNote = false;
       return "Removed the author's note.";
     }
     else {
       data.state.memory.authorsNote = newNote;
+      data.state.$$setAuthorsNote = true;
       return `Author's note set to: ${newNote}`;
     }
   })

@@ -28,12 +28,13 @@ exports.getAssociationSet = dew(() => {
  */
 exports.associationsHelper = function* (data, usedKeys) {
   const ctx = data.stateEngineContext;
-  const { playerMemory, state: { memory: { authorsNote, frontMemory } } } = data;
+  const { playerMemory, state } = data;
+  const { memory: { frontMemory }, $$setAuthorsNote } = state;
   // Let's get the easy stuff out of the way first.
   for (const matcher of ctx.sortedStateMatchers) {
     yield [matcher, { source: "implicit" }];
     if (playerMemory) yield [matcher, { source: "playerMemory", entry: playerMemory }];
-    if (!authorsNote) yield [matcher, { source: "authorsNote" }];
+    if (!$$setAuthorsNote) yield [matcher, { source: "authorsNote" }];
     if (!frontMemory) yield [matcher, { source: "frontMemory" }];
   }
 

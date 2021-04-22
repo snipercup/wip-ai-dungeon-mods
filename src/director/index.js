@@ -39,6 +39,21 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
     static get forType() { return "Direction"; }
 
     /**
+     * @param {Map<string, StateDataForModifier>} allStates
+     * @returns {void}
+     */
+    modifier(allStates) {
+      // If we have a key and no relations, and some state exists that shares
+      // the key, use the key as a relation implicitly.
+      if (!this.key || this.relations.size > 0) return;
+      for (const [, state] of allStates) {
+        if (state.key !== this.key) continue;
+        this.relations.add(this.key);
+        return;
+      }
+    }
+
+    /**
      * @param {MatchableEntry} matcher 
      * @param {AssociationParams} params 
      * @returns {boolean}

@@ -1,3 +1,4 @@
+/// <reference path="./director.d.ts" />
 /// <reference path="../state-engine/state-engine.d.ts" />
 const { isParamsFor } = require("../state-engine/utils");
 const { addStateEntry } = require("../state-engine/registry");
@@ -8,7 +9,7 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
  * 
  * @type {BundledModifierFn}
  */
- const init = () => {
+ const init = (data) => {
   /**
    * When this state matches any history entry, it will provide text for the
    * Author's Note.  Use it to give direction to the AI when certain moods,
@@ -79,6 +80,19 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
       // Give 10 points for every history entry matched.  If we matched no
       // entries, our score will be `0` and the association will be dropped.
       return 10 * this.historyMatches;
+    }
+
+    postRules() {
+      // The last selected entry will be held for 6 actions before an opportunity
+      // to change it again is allowed.
+      const { actionCount, state: { $$lastTurnForDirector } } = data;
+      checks: {
+        if ($$lastTurnForDirector == null) break checks;
+        if ($$lastTurnForDirector + 6 <= actionCount) break checks;
+        return false;
+      }
+      data.state.$$lastTurnForDirector = actionCount;
+      return true;
     }
   }
 

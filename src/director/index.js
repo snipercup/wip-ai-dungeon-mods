@@ -83,12 +83,12 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
     }
 
     postRules() {
-      // The last selected entry will be held for 6 actions before an opportunity
+      // The last selected entry will be held for 12 actions before an opportunity
       // to change it again is allowed.
       const { actionCount, state: { $$lastTurnForDirector } } = data;
       checks: {
         if ($$lastTurnForDirector == null) break checks;
-        if ($$lastTurnForDirector + 6 <= actionCount) break checks;
+        if ($$lastTurnForDirector + 12 <= actionCount) break checks;
         return false;
       }
       data.state.$$lastTurnForDirector = actionCount;

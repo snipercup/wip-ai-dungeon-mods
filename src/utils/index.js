@@ -25,6 +25,17 @@ exports.shutUpTS = (value) => value;
 exports.ident = (input) => input;
 
 /**
+ * Creates a strongly-typed tuple of any size, but supports only simpler
+ * primatives: `number`, `string`, `boolean`, functions, and plain objects.
+ * 
+ * @template {readonly Primatives[]} T
+ * @param {T} args
+ * @returns {[...T]}
+ */
+// @ts-ignore - The `readonly` modifier is only used to infer literal types.
+exports.tuple = (...args) => args;
+
+/**
  * Creates a strongly-typed two-element tuple.
  * 
  * @template TA, TB

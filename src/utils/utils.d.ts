@@ -1,12 +1,13 @@
+/** The primative data-types. */
+type Primatives = number | string | boolean | Function | {};
+
 type Chainable<TEl, TIter extends Iterable<TEl>> = TIter;
 type ElementOf<T> = T extends Iterable<infer TEl> ? TEl : never;
 
 type TransformFn<TIn, TOut> = (value: TIn) => TOut;
-type KvpTransformFn<TIn, TK extends string, TV> = TransformFn<TIn, [TK, TV]>;
-type TupleTransformFn<TIn, TOut extends unknown[]> = (value: TIn) => [...TOut];
+type TupleTransformFn<TIn, TOut extends readonly Primatives[]> = (value: TIn) => [...TOut];
 type CollectFn<TIn, TOut> = TransformFn<TIn, TOut | undefined>;
-type KvpCollectFn<TIn, TK extends string, TV> = CollectFn<TIn, [TK, TV]>;
-type TupleCollectFn<TIn, TOut extends unknown[]> = (value: TIn) => [...TOut] | undefined;
+type TupleCollectFn<TIn, TOut extends readonly Primatives[]> = (value: TIn) => [...TOut] | undefined;
 type PredicateFn<T> = (value: T) => boolean;
 type TypeGuardPredicateFn<T, U> = (value: T) => value is U;
 type TapFn<TValue> = (value: TValue) => unknown;
@@ -18,10 +19,8 @@ type Flattenable<T>
 type FlatElementOf<T> = T extends Iterable<infer TEl> ? Flattenable<TEl> : never;
 
 interface ChainComposition<TIterIn extends Iterable<any>> {
-  /** Transforms each element into a key-value-pair. */
-  map<K extends string, V>(xformFn: KvpTransformFn<ElementOf<TIterIn>, K, V>): ChainComposition<Iterable<[K, V]>>;
   /** Transforms each element into a tuple. */
-  map<TOut>(xformFn: TupleTransformFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
+  map<TOut extends readonly Primatives[]>(xformFn: TupleTransformFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
   /** Transforms each element. */
   map<TOut>(xformFn: TransformFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
   /** Flattens an iterable of iterables by one level. */
@@ -32,10 +31,8 @@ interface ChainComposition<TIterIn extends Iterable<any>> {
   filter<TOut>(predicateFn: TypeGuardPredicateFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
   /** Filters to those elements that pass a predicate function. */
   filter(predicateFn: PredicateFn<ElementOf<TIterIn>>): ChainComposition<Iterable<ElementOf<TIterIn>>>;
-  /** Collects each applicable element into a key-value-pair. */
-  collect<K extends string, V>(collectFn: KvpCollectFn<ElementOf<TIterIn>, K, V>): ChainComposition<Iterable<[K, V]>>;
   /** Collects each applicable element into a tuple. */
-  collect<TOut>(collectFn: TupleCollectFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
+  collect<TOut extends readonly Primatives[]>(collectFn: TupleCollectFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
   /** Collects each applicable element. */
   collect<TOut>(collectFn: CollectFn<ElementOf<TIterIn>, TOut>): ChainComposition<Iterable<TOut>>;
   /** Concatenates the given values and/or iterables after the current iterable. */

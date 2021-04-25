@@ -204,7 +204,8 @@ class StateEngineEntry {
 
   /**
    * The specific association sources that this entry can match.
-   * - Return `null` to match all sources.
+   * - Return `null` to match all sources with text, which is `implicitRef`,
+   *   `playerMemory`, and `history`.  This is the default behavior.
    * - Returning `[]` will match no sources, making the entry useless.
    * 
    * Specifying this can speed up processing by skipping entries that have
@@ -317,9 +318,6 @@ class StateEngineEntry {
   associator(matcher, params) {
     // The default associator requires text to do any form of matching.
     if (!isParamsTextable(params)) return false;
-    // But does not do implicit reference associations; child classes must implement
-    // that for themselves.
-    if (isParamsFor("implicitRef", params)) return false;
 
     if (!this.checkKeywords(matcher, params)) return false;
     if (!this.checkRelations(matcher, params)) return false;

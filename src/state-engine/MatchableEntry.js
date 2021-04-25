@@ -40,12 +40,13 @@ const memoizedCounter = () => {
   };
 }
 
-/** @type {Set<AssociationTargets>} */
-const defaultTargets = new Set([
-  "implicit", "implicitRef",
-  "playerMemory", "authorsNote", "frontMemory",
-  "history"
-]);
+/**
+ * The default in case `targetSources` is `null`, only associate with sources
+ * that have matchable text.
+ * 
+ * @type {Set<AssociationTargets>}
+ */
+const defaultTargets = new Set(["implicitRef", "playerMemory", "history"]);
 
 /** Class that wraps a world info object and provides keyword matching helpers. */
 class MatchableEntry {

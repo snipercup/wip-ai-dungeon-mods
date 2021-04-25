@@ -5,7 +5,7 @@
  * 
  * Ryan Cavanaugh should be fired.
  * 
- * @template {keyof AssociationParamTypes} TType
+ * @template {AssociationTargets} TType
  * @param {TType} type
  * @param {AssociationParams} params 
  * @returns {params is AssociationParamTypes[TType]}

@@ -40,6 +40,13 @@ const memoizedCounter = () => {
   };
 }
 
+/** @type {Set<AssociationTargets>} */
+const defaultTargets = new Set([
+  "implicit", "implicitRef",
+  "playerMemory", "authorsNote", "frontMemory",
+  "history"
+]);
+
 /** Class that wraps a world info object and provides keyword matching helpers. */
 class MatchableEntry {
   /**
@@ -49,6 +56,10 @@ class MatchableEntry {
   constructor(stateEntry, matchCounter) {
     this.stateEntry = stateEntry;
     this.matchCounter = matchCounter ?? memoizedCounter();
+
+    // Cache the `targetSources` as a `Set`, since it is a getter property.
+    const targets = stateEntry.targetSources;
+    this.targetSources = targets ? new Set(targets) : defaultTargets;
 
     this.include = chain(stateEntry.include)
       .map((kw) => new RegExp(keywordPattern(kw), "i"))

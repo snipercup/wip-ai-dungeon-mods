@@ -79,10 +79,24 @@ interface AssociationParamTypes {
   "history": { source: number, entry: HistoryEntry, usedKeys: UsedKeysMap };
 }
 
-type AssociationParams = AssociationParamTypes[keyof AssociationParamTypes];
+type AssociationTargets = keyof AssociationParamTypes;
+type AssociationParams = AssociationParamTypes[AssociationTargets];
 type AssociationSources = AssociationParams["source"];
 // There's no reliable way to make TS generate this automatically.
 type FlatAssociationParams = { source: any, entry?: any, usedKeys?: any };
+
+// This should be inlined into `AssociationParamsFor`, but TypeScript's type-system is garbage.
+type AssociationParamsFromTargets<TTargets extends Array<AssociationTargets> | null>
+  = TTargets extends Array<infer TKey>
+    ? TKey extends AssociationTargets ? AssociationParamTypes[TKey]
+    : never
+  : AssociationParamTypes["implicitRef" | "playerMemory" | "history"];
+
+type AssociationParamsFor<TEntry extends StateEngineEntry>
+  = AssociationParamsFromTargets<TEntry["targetSources"]>;
+
+type AssociationSourcesFor<TEntry extends StateEngineEntry>
+  = AssociationParamsFor<TEntry>["source"];
 
 type PreRuleIteratorResult = [otherEntry: StateEngineEntry, source: AssociationSources];
 type PreRuleIterator = () => Iterable<PreRuleIteratorResult>;

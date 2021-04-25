@@ -1,5 +1,6 @@
 /// <reference path="./director.d.ts" />
 /// <reference path="../state-engine/state-engine.d.ts" />
+const { tuple } = require("../utils");
 const { isParamsFor } = require("../state-engine/utils");
 const { addStateEntry } = require("../state-engine/registry");
 const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
@@ -38,6 +39,7 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
     }
 
     static get forType() { return "Direction"; }
+    get targetSources() { return tuple("authorsNote", "history"); }
 
     /**
      * @param {Map<string, StateDataForModifier>} allStates
@@ -56,7 +58,7 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
 
     /**
      * @param {MatchableEntry} matcher 
-     * @param {AssociationParams} params 
+     * @param {AssociationParamsFor<this>} params 
      * @returns {boolean}
      */
     associator(matcher, params) {
@@ -66,7 +68,6 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
       // We want to also check the recent history too.  The latest 5 history
       // sources should do the trick.  We'll increment `historyMatches` if we
       // match one.
-      if (!isParamsFor("history", params)) return false;
       if (params.source >= 5) return false;
       if (!this.checkKeywords(matcher, params)) return false;
       if (!this.checkRelations(matcher, params)) return false;

@@ -1,5 +1,5 @@
 /// <reference path="../state-engine/state-engine.d.ts" />
-const { dew, getText, chain, rollDice } = require("../utils");
+const { tuple, chain, rollDice } = require("../utils");
 const { addStateEntry } = require("../state-engine/registry");
 const { isParamsFor } = require("../state-engine/utils");
 const { StateEngineEntry, iterUsedKeys } = require("../state-engine/StateEngineEntry");
@@ -51,6 +51,7 @@ const init = (data) => {
 
   class PlayerEntry extends StateEngineEntry {
     static get forType() { return "Player"; }
+    get targetSources() { return tuple("implicit", "history"); }
     get priority() { return 100; }
 
     validator() {
@@ -69,7 +70,7 @@ const init = (data) => {
 
     /**
      * @param {MatchableEntry} matcher 
-     * @param {AssociationParams} params 
+     * @param {AssociationParamsFor<this>} params 
      * @returns {boolean}
      */
     associator(matcher, params) {
@@ -81,7 +82,7 @@ const init = (data) => {
 
     /**
      * @param {MatchableEntry} matcher
-     * @param {AssociationSources} source
+     * @param {AssociationSourcesFor<this>} source
      * @param {StateEngineEntry | HistoryEntry | string} entry
      * @returns {number}
      */
@@ -94,7 +95,7 @@ const init = (data) => {
 
     /**
      * @param {MatchableEntry} matcher 
-     * @param {AssociationSources} source 
+     * @param {AssociationSourcesFor<this>} source 
      * @param {number} score 
      * @param {PostRuleIterators} neighbors 
      * @returns {boolean}
@@ -113,6 +114,7 @@ const init = (data) => {
 
   class NpcEntry extends StateEngineEntry {
     static get forType() { return "NPC"; }
+    get targetSources() { return tuple("implicit", "history"); }
     get priority() { return 90; }
 
     validator() {
@@ -131,22 +133,20 @@ const init = (data) => {
 
     /**
      * @param {MatchableEntry} matcher 
-     * @param {AssociationParams} params 
+     * @param {AssociationParamsFor<this>} params 
      * @returns {boolean}
      */
     associator(matcher, params) {
       const diceSize = npcImplicitInclusionDiceSides;
       // Has a chance of being implicitly included.
       if (isParamsFor("implicit", params)) return rollDice(1, diceSize) === diceSize;
-      // Otherwise, only valid when processing the `history` and current `text`.
-      if (!isParamsFor("history", params)) return false;
-      // Use the default associator from here on.
+      // Otherwise, use the default associator from here on.
       return super.associator(matcher, params);
     }
 
     /**
      * @param {MatchableEntry} matcher
-     * @param {AssociationSources} source
+     * @param {AssociationSourcesFor<this>} source
      * @param {StateEngineEntry | HistoryEntry | string} entry
      * @returns {number}
      */
@@ -160,6 +160,7 @@ const init = (data) => {
 
   class LocationEntry extends StateEngineEntry {
     static get forType() { return "Location"; }
+    get targetSources() { return tuple("implicit"); }
     get priority() { return 50; }
 
     validator() {
@@ -171,14 +172,9 @@ const init = (data) => {
       return issues;
     }
 
-    /**
-     * @param {MatchableEntry} matcher 
-     * @param {AssociationParams} params 
-     * @returns {boolean}
-     */
-    associator(matcher, { source }) {
-      // Only associate implicitly.
-      return source === "implicit";
+    associator() {
+      // Only associates implicitly.
+      return true;
     }
 
     valuator() {
@@ -192,6 +188,7 @@ const init = (data) => {
 
   class LoreEntry extends StateEngineEntry {
     static get forType() { return "Lore"; }
+    get targetSources() { return tuple("history"); }
 
     /**
      * @param {Map<string, StateDataForModifier>} allStates
@@ -212,24 +209,25 @@ const init = (data) => {
         .filter((sd) => sd.key === this.key)
         .filter((sd) => sd.include.size > 0)
         .filter((sd) => sd.exclude.size === 0)
-        .filter((sd) => sd.relations.size === ownRelations.size)
+        .filter((sd) => {
+          // They must also share the same relations, if they have them.
+          if (sd.relations.size !== ownRelations.size) return false;
+          for (const otherRel of sd.relations)
+            if (!ownRelations.has(otherRel)) return false;
+          return true;
+        })
         .toArray();
       
       // Must be exactly one match for this to apply.
       if (duplicateEntries.length !== 1) return;
 
-      // They must also share the same relations, if they have them.
       const [choosenEntry] = duplicateEntries;
-      if (ownRelations.size > 0)
-        for (const otherRel of choosenEntry.relations)
-          if (!ownRelations.has(otherRel)) return;
-
       this.include = new Set([...choosenEntry.include]);
     }
 
     /**
      * @param {MatchableEntry} matcher
-     * @param {AssociationSources} source
+     * @param {AssociationSourcesFor<this>} source
      * @param {PreRuleIterators} neighbors
      * @returns {boolean}
      */
@@ -251,7 +249,7 @@ const init = (data) => {
 
     /**
      * @param {MatchableEntry} matcher
-     * @param {AssociationSources} source
+     * @param {AssociationSourcesFor<this>} source
      * @param {StateEngineEntry | HistoryEntry | string} entry
      * @returns {number}
      */
@@ -266,6 +264,7 @@ const init = (data) => {
 
   class StateEntry extends StateEngineEntry {
     static get forType() { return "State"; }
+    get targetSources() { return tuple("history"); }
 
     validator() {
       const issues = super.validator();
@@ -293,24 +292,13 @@ const init = (data) => {
     }
 
     /**
-     * @param {MatchableEntry} matcher 
-     * @param {AssociationParams} params 
-     * @returns {boolean}
-     */
-    associator(matcher, params) {
-      // Only valid when processing the `history` and current `text`.
-      if (!isParamsFor("history", params)) return false;
-      return super.associator(matcher, params);
-    }
-
-    /**
      * The "State" type is a little bit different.  It's for immediately relevant
      * information.  When it has relations, we want to only associate this with
      * entries that are nearby to the related matches.  We define this as being
      * within 3 history entries.
      * 
      * @param {MatchableEntry} matcher
-     * @param {AssociationParams} params
+     * @param {AssociationParamsFor<this>} params
      * @returns {boolean}
      * Whether this entry's relations were satisfied for this source.
      */
@@ -328,7 +316,7 @@ const init = (data) => {
     /**
      * Only adds the key to `usedKeys` if its key does not appear in its own relations.
      * 
-     * @param {AssociationParams} params 
+     * @param {AssociationParamsFor<this>} params 
      * @returns {void}
      */
     recordKeyUsage(params) {
@@ -340,7 +328,7 @@ const init = (data) => {
 
     /**
      * @param {MatchableEntry} matcher
-     * @param {AssociationSources} source
+     * @param {AssociationSourcesFor<this>} source
      * @param {StateEngineEntry | HistoryEntry | string} entry
      * @returns {number}
      */
@@ -352,7 +340,7 @@ const init = (data) => {
     /**
      * 
      * @param {MatchableEntry} matcher
-     * @param {AssociationSources} source
+     * @param {AssociationSourcesFor<this>} source
      * @param {number} score
      * @param {PostRuleIterators} neighbors
      * @returns {boolean}

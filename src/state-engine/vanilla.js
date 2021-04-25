@@ -1,4 +1,5 @@
 /// <reference path="./state-engine.d.ts" />
+const { tuple } = require("../utils");
 const { isParamsFor } = require("./utils");
 const { addStateEntry } = require("./registry");
 const { StateEngineEntry } = require("./StateEngineEntry");
@@ -15,6 +16,7 @@ const { StateEngineEntry } = require("./StateEngineEntry");
    */
   class VanillaEntry extends StateEngineEntry {
     static get forType() { return "VanillaEntry"; }
+    get targetSources() { return tuple("history"); }
 
     /**
      * @param {WorldInfoEntry} worldInfo
@@ -31,18 +33,6 @@ const { StateEngineEntry } = require("./StateEngineEntry");
         include: keys.split(",").map(s => s.trim()).filter(Boolean),
         exclude: []
       };
-    }
-
-    /**
-     * @param {MatchableEntry} matcher 
-     * @param {AssociationParams} params 
-     * @returns {boolean}
-     */
-    associator(matcher, params) {
-      // Only applies to history entries.
-      if (!isParamsFor("history", params)) return false;
-      // Will use all standard stuff, besides this.
-      return super.associator(matcher, params);
     }
   }
 

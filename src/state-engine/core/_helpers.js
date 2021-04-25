@@ -32,15 +32,21 @@ exports.associationsHelper = function* (data, usedKeys) {
   const { memory: { frontMemory }, $$setAuthorsNote } = state;
   // Let's get the easy stuff out of the way first.
   for (const matcher of ctx.sortedStateMatchers) {
-    yield [matcher, { source: "implicit" }];
-    if (playerMemory) yield [matcher, { source: "playerMemory", entry: playerMemory }];
-    if (!$$setAuthorsNote) yield [matcher, { source: "authorsNote" }];
-    if (!frontMemory) yield [matcher, { source: "frontMemory" }];
+    if (matcher.targetSources.has("implicit"))
+      yield [matcher, { source: "implicit" }];
+    if (playerMemory && matcher.targetSources.has("playerMemory"))
+      yield [matcher, { source: "playerMemory", entry: playerMemory }];
+    if (!$$setAuthorsNote && matcher.targetSources.has("authorsNote"))
+      yield [matcher, { source: "authorsNote" }];
+    if (!frontMemory && matcher.targetSources.has("frontMemory"))
+      yield [matcher, { source: "frontMemory" }];
   }
 
   // Next, we'll run through the implicit inclusions and give a chance for entries
   // to add themselves in by being referenced within them.
   for (const matcher of ctx.sortedStateMatchers) {
+    if (!matcher.targetSources.has("implicitRef")) continue;
+
     for (const includedId of exports.getAssociationSet(ctx, "implicit", true)) {
       if (matcher.infoId === includedId) continue;
       const otherEntry = ctx.entriesMap[includedId];
@@ -52,7 +58,8 @@ exports.associationsHelper = function* (data, usedKeys) {
   for (const [index, historyEntry] of iterArray(ctx.workingHistory)) {
     const offset = ctx.workingHistory.length - 1 - index;
     for (const matcher of ctx.sortedStateMatchers)
-      yield [matcher, { source: offset, entry: historyEntry, usedKeys }];
+      if (matcher.targetSources.has("history"))
+        yield [matcher, { source: offset, entry: historyEntry, usedKeys }];
   }
 };
 

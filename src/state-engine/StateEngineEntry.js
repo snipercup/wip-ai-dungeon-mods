@@ -203,6 +203,20 @@ class StateEngineEntry {
   }
 
   /**
+   * The specific association sources that this entry can match.
+   * - Return `null` to match all sources.
+   * - Returning `[]` will match no sources, making the entry useless.
+   * 
+   * Specifying this can speed up processing by skipping entries that have
+   * no interest in certain sources.
+   * 
+   * @type {AssociationTargets[] | null}
+   */
+  get targetSources() {
+    return null;
+  }
+
+  /**
    * The priority of this entry.  Priority affects how entries will be sorted
    * in the final text delivered to the AI.  Higher priority means it will
    * tend to appear earlier in the output.
@@ -296,7 +310,7 @@ class StateEngineEntry {
    * The `matcher` instance provides helpers to efficiently match keywords to text.
    * 
    * @param {MatchableEntry} matcher
-   * @param {AssociationParams} params
+   * @param {AssociationParamsFor<this>} params
    * @returns {boolean}
    * Whether this entry should be associated with this source.
    */
@@ -323,7 +337,7 @@ class StateEngineEntry {
    *   were matched.
    * 
    * @param {MatchableEntry} matcher
-   * @param {AssociationParams} params
+   * @param {AssociationParamsFor<this>} params
    * @returns {boolean}
    * Whether this entry's relations were satisfied for this source.
    */
@@ -351,7 +365,7 @@ class StateEngineEntry {
    * - The entry's relations are satisfied.
    * 
    * @param {MatchableEntry} matcher
-   * @param {AssociationParams} params
+   * @param {AssociationParamsFor<this>} params
    * @returns {boolean}
    * Whether this entry's relations were satisfied for this source.
    */
@@ -370,7 +384,7 @@ class StateEngineEntry {
    * Handles the recording of the entry's key in `usedKeys` for history sources.
    * This is safe to call, even if the source is not for the history.
    * 
-   * @param {AssociationParams} params 
+   * @param {AssociationParamsFor<this>} params 
    * @returns {void}
    */
   recordKeyUsage(params) {
@@ -400,7 +414,7 @@ class StateEngineEntry {
    * - The history, in temporal order, so `20, 19, 18, ...` and so on to `0`.
    * 
    * @param {MatchableEntry} matcher
-   * @param {AssociationSources} source
+   * @param {AssociationSourcesFor<this>} source
    * @param {PreRuleIterators} neighbors
    * @returns {boolean}
    * Whether this entry's association should be retained.
@@ -424,7 +438,7 @@ class StateEngineEntry {
    * call `super.valuator` and pass an argument for `baseScalar`.
    * 
    * @param {MatchableEntry} matcher
-   * @param {AssociationSources} source
+   * @param {AssociationSourcesFor<this>} source
    * @param {StateEngineEntry | HistoryEntry | string} entry
    * @param {number} [baseScalar]
    * @returns {number}
@@ -481,7 +495,7 @@ class StateEngineEntry {
    * will be the ultimate selection for that target.
    * 
    * @param {MatchableEntry} matcher
-   * @param {AssociationSources} source
+   * @param {AssociationSourcesFor<this>} source
    * @param {number} score
    * @param {PostRuleIterators} neighbors
    * @returns {boolean}

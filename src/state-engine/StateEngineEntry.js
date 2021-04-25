@@ -391,6 +391,14 @@ class StateEngineEntry {
    * 
    * Use `neighbors` to explore the other associations.
    * 
+   * Pre-rules are run in the order of:
+   * - The `implicit` source.
+   * - The `playerMemory` source.
+   * - The `authorsNote` source.
+   * - The `frontMemory` source.
+   * - The `implicitRef` source.
+   * - The history, in temporal order, so `20, 19, 18, ...` and so on to `0`.
+   * 
    * @param {MatchableEntry} matcher
    * @param {AssociationSources} source
    * @param {PreRuleIterators} neighbors
@@ -453,11 +461,21 @@ class StateEngineEntry {
    * 
    * Use `neighbors` to explore the other associations.
    * 
+   * Post-rules are run in the order of:
+   * - The history, temporaly reversed order, so `0, 1, 2, ...` and so on.
+   * - The `implicitRef` source.
+   * - The `frontMemory` source.
+   * - The `authorsNote` source.
+   * - The `playerMemory` source.
+   * - The `implicit` source.
+   * 
    * These are the final output buckets:
    * - `forContextMemory` can have multiple entries, but only one of each type.
-   * - `forHistory` can have only one entry per history offset.
-   * - `forFrontMemory` can only have one entry.
-   * - `forAuthorsNote` can only have one entry.
+   *   Selected associations from the `implicit`, `implicitRef`, and `playerMemory`
+   *   sources end up here.
+   * - `forHistory` can have only one entry per history source.
+   * - `forFrontMemory` can only have one entry from the `frontMemory` source.
+   * - `forAuthorsNote` can only have one entry from the `authorsNote` source.
    * 
    * If this returns `true`, and the target can only have one entry, this entry
    * will be the ultimate selection for that target.

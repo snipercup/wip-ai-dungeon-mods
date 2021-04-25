@@ -87,9 +87,19 @@ type FlatAssociationParams = { source: any, entry?: any, usedKeys?: any };
 type PreRuleIteratorResult = [otherEntry: StateEngineEntry, source: AssociationSources];
 type PreRuleIterator = () => Iterable<PreRuleIteratorResult>;
 interface PreRuleIterators {
+  /** Gets all associations for the given source. */
   getFor(source: AssociationSources): Iterable<PreRuleIteratorResult>;
+  /**
+   * Gets all History associations before the current source.
+   * Will be empty unless the current association is a history source.
+   */
   before: PreRuleIterator;
+  /** Gets all associations for the current source. */
   current: PreRuleIterator;
+  /**
+   * Gets all History associations after the current source.
+   * Will be empty unless the current association is a history source.
+   */
   after: PreRuleIterator;
 }
 
@@ -97,10 +107,27 @@ type ScoresMap = Map<AssociationSources, Map<StateEngineEntry["infoId"], number>
 type PostRuleIteratorResult = [...PreRuleIteratorResult, score: number];
 type PostRuleIterator = () => Iterable<PostRuleIteratorResult>;
 interface PostRuleIterators {
+  /** Gets all associations for the given source. */
   getFor(source: AssociationSources): Iterable<PostRuleIteratorResult>;
+  /**
+   * Gets all History associations before the current source.
+   * Will be empty unless the current association is a history source.
+   */
   before: PostRuleIterator;
+  /** Gets all associations for the current source. */
   current: PostRuleIterator;
+  /**
+   * Gets all History associations after the current source.
+   * Will be empty unless the current association is a history source.
+   */
   after: PostRuleIterator;
+  /**
+   * Gets the associations that have won the roulette and been selected, thus far.
+   * 
+   * You will not get selections from sources that have not yet been evaluated, so
+   * if history source `2` is being evaluated, you can get the final selections
+   * for `0` and `1` only.
+   */
   selected: PostRuleIterator;
 }
 

@@ -183,10 +183,16 @@ const init = (data) => {
     }
   }
 
-  /** @type {Set<StateEngineEntry["infoId"]>} */
-  const loreWithMatchedStates = new Set();
-
   class LoreEntry extends StateEngineEntry {
+    /**
+     * @param {WorldInfoEntry} worldInfo
+     */
+    constructor(worldInfo) {
+      super(worldInfo);
+
+      this.hasMatchedStateEntry = false;
+    }
+
     static get forType() { return "Lore"; }
     get targetSources() { return tuple("history"); }
 
@@ -234,13 +240,13 @@ const init = (data) => {
     preRules(matcher, source, neighbors) {
       // Do some pre-processing, looking for matching `State` entries that
       // reference this `Lore`.
-      const { key, infoId } = this;
+      const { key } = this;
       if (!key) return true;
 
       for (const [otherEntry] of neighbors.after()) {
         if (otherEntry.type !== "State") continue;
         if (!otherEntry.relations.has(key)) continue;
-        loreWithMatchedStates.add(infoId);
+        this.hasMatchedStateEntry = true;
         break;
       }
 
@@ -257,7 +263,7 @@ const init = (data) => {
       // Give a boost if this `Lore` was referenced by a later `State`.
       // Later states only, because we don't want this lore entry over
       // shadowing the more important state entry.
-      const scalar = loreWithMatchedStates.has(matcher.infoId) ? 2 : 1;
+      const scalar = this.hasMatchedStateEntry ? 2 : 1;
       return super.valuator(matcher, source, entry, scalar);
     }
   }

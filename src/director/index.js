@@ -86,13 +86,14 @@ const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorld
     postRules() {
       // The last selected entry will be held for 12 actions before an opportunity
       // to change it again is allowed.
-      const { actionCount, state: { $$lastTurnForDirector } } = data;
+      const { actionCount, state: { $$currentDirectorSection } } = data;
+      const currentSection = (actionCount / 12) | 0;
       checks: {
-        if ($$lastTurnForDirector == null) break checks;
-        if ($$lastTurnForDirector + 12 <= actionCount) break checks;
+        if ($$currentDirectorSection == null) break checks;
+        if ($$currentDirectorSection !== currentSection) break checks;
         return false;
       }
-      data.state.$$lastTurnForDirector = actionCount;
+      data.state.$$currentDirectorSection = currentSection;
       return true;
     }
   }

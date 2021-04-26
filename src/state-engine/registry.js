@@ -1,4 +1,4 @@
-/** @typedef {typeof import("./StateEngineEntry").StateEngineEntry} StateEngineEntryClass */
+/// <reference path="./state-engine.d.ts" />
 
 /** @type {Record<string, StateEngineEntryClass>} */
 const worldStateDefinitions = {};
@@ -20,3 +20,10 @@ exports.addStateEntry = (entryClass) => {
 exports.getStateEntry = (type) => {
   return worldStateDefinitions[type];
 };
+
+/**
+ * Yields all the registered `StateEngineEntry` classes.
+ * 
+ * @returns {Iterable<StateEngineEntryClass>}
+ */
+exports.allStateEntries = () => Object.values(worldStateDefinitions);

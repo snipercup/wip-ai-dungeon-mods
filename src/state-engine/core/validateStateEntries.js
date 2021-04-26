@@ -1,5 +1,4 @@
 const { chain } = require("../../utils");
-const { worldInfoString } = require("../utils");
 
 /**
  * Validates newly parsed `StateEngineData`.  Will remove any that fail validation.
@@ -15,17 +14,18 @@ module.exports = (data) => {
     if (results.length === 0) continue;
     delete ctx.entriesMap[id];
 
-    const theIssues = ctx.validationIssues.get(id) ?? [];
+    const renderAs = entry.toString();
+    const theIssues = ctx.validationIssues.get(renderAs) ?? [];
     theIssues.push(...results);
-    ctx.validationIssues.set(id, theIssues);
+    ctx.validationIssues.set(renderAs, theIssues);
   }
 
   if (ctx.validationIssues.size === 0) return;
 
   data.useAI = false;
   data.message = chain(ctx.validationIssues)
-    .map(([id, issues]) => [
-      `\t${worldInfoString(ctx.worldInfoMap[id])}`,
+    .map(([renderAs, issues]) => [
+      `\t${renderAs}`,
       ...issues.map((issue) => (`\t\t• ${issue}`))
     ])
     .flatten()

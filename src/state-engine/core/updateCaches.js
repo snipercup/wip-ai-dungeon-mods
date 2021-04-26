@@ -22,7 +22,7 @@ module.exports = (data) => {
       const entry = ctx.entriesMap[id];
       const score = ctx.scoresMap.get(source)?.get(id) ?? 0;
       const priority = entry.priority ?? null;
-      const entryData = { infoId: id, score, priority, source };
+      const entryData = { entryId: id, score, priority, source };
       switch (source) {
         case "implicit":
         case "implicitRef":

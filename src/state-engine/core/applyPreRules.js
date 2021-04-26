@@ -11,10 +11,10 @@ module.exports = (data) => {
 
   for (const [matcher, { source }] of associationsHelper(data)) {
     const theSet = getAssociationSet(ctx, source);
-    if (!theSet?.has(matcher.infoId)) continue;
+    if (!theSet?.has(matcher.entryId)) continue;
 
     const neighbors = makePreRuleIterators(ctx, matcher.stateEntry, source);
     const result = matcher.stateEntry.preRules(matcher, source, neighbors);
-    if (!result) theSet.delete(matcher.infoId);
+    if (!result) theSet.delete(matcher.entryId);
   }
 };

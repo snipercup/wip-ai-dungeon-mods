@@ -8,7 +8,7 @@ exports.getAssociationSet = dew(() => {
    * @param {import("./types").Context} ctx
    * @param {AssociationSources} source
    * @param {boolean} [create]
-   * @returns {Maybe<Set<StateEngineEntry["infoId"]>>}
+   * @returns {Maybe<Set<StateEngineEntry["entryId"]>>}
    */
   const impl = (ctx, source, create = false) => {
     let theSet = ctx.stateAssociations.get(source);
@@ -48,7 +48,7 @@ exports.associationsHelper = function* (data, usedKeys) {
     if (!matcher.targetSources.has("implicitRef")) continue;
 
     for (const includedId of exports.getAssociationSet(ctx, "implicit", true)) {
-      if (matcher.infoId === includedId) continue;
+      if (matcher.entryId === includedId) continue;
       const otherEntry = ctx.entriesMap[includedId];
       yield [matcher, { source: "implicitRef", entry: otherEntry }];
     }
@@ -95,7 +95,7 @@ exports.makePreRuleIterators = dew(() => {
   
     const current = function* () {
       for (const otherEntry of getFor(source))
-        if (otherEntry[0].infoId !== stateEntry.infoId)
+        if (otherEntry[0].entryId !== stateEntry.entryId)
           yield otherEntry;
     };
   
@@ -132,7 +132,7 @@ exports.toPostRuleIterators = (preRuleIter, scoresMap, usedEntries) => {
         // @ts-ignore - More argument shenanigans that TS don't understand.
         const iterable = iteratorFn(...args);
         return mapIter(iterable, ([otherEntry, source]) => {
-          const score = scoresMap.get(source)?.get(otherEntry.infoId) ?? 0;
+          const score = scoresMap.get(source)?.get(otherEntry.entryId) ?? 0;
           return tuple3(otherEntry, source, score);
         });
       };

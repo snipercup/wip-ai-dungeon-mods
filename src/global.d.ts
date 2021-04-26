@@ -97,7 +97,7 @@ declare interface GameState {
    * `StateEngineData` ID for the action to the turn it should next
    * evaluate on.
    */
-  $$forcedActions?: Record<StateEngineData["infoId"], number>;
+  $$forcedActions?: Record<StateEngineData["entryId"], number>;
 };
 
 declare interface GameInfo {

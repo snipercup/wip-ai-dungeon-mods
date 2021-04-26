@@ -7,16 +7,13 @@ interface StateModule {
   post?: BundledModifierFn[];
 }
 
+interface StateEngineEntryClass {
+  new (...args: any[]): StateEngineEntry;
+  forType: (typeof import("./StateEngineEntry").StateEngineEntry)["forType"];
+  produceEntries: (typeof import("./StateEngineEntry").StateEngineEntry)["produceEntries"];
+}
+
 interface StateEngineData {
-  /**
-   * The ID of the `WorldInfoEntry` this data belongs to.
-   */
-  infoId: WorldInfoEntry["id"];
-  /**
-   * The original `keys` of the `WorldInfoEntry` this data was created from.
-   * Can be used to check to see if it requires recalculation.
-   */
-  infoKey: WorldInfoEntry["keys"];
   /**
    * The key of this entry.  Common types:
    * - `Player` - For a player's information; high-priority.
@@ -26,6 +23,14 @@ interface StateEngineData {
    * - `State` - For present knowledge of the world and its characters; high-priority.
    */
   type: string;
+  /**
+   * The ID given to this entry.
+   */
+  entryId: string;
+  /**
+   * Optional; provide to store the entry's text, if the entry is dynamic.
+   */
+  text?: string;
   /**
    * An user-given identifier.  Will be `null` if it was not given one or is otherwise
    * not applicable to the `type`.
@@ -47,17 +52,29 @@ interface StateEngineData {
   exclude: string[];
 }
 
+interface EngineDataForWorldInfo extends StateEngineData {
+  /**
+   * Indicates that this entry is associated with a world-info entry.
+   */
+  forWorldInfo: boolean;
+  /**
+   * The original `keys` of the `WorldInfoEntry` this data was created from.
+   * Can be used to check to see if it requires recalculation.
+   */
+  infoKey: WorldInfoEntry["keys"];
+}
+
 interface StateDataForModifier extends StateEngineData {
   relations: Set<string>;
   include: Set<string>;
   exclude: Set<string>;
 }
 
-type StateAssociations = Map<AssociationSources, Set<StateEngineEntry["infoId"]>>;
+type StateAssociations = Map<AssociationSources, Set<StateEngineEntry["entryId"]>>;
 
 interface GetAssociationSetFn {
-  (source: AssociationSources, create: true): Set<StateEngineEntry["infoId"]>;
-  (source: AssociationSources, create?: false): Maybe<Set<StateEngineEntry["infoId"]>>;
+  (source: AssociationSources, create: true): Set<StateEngineEntry["entryId"]>;
+  (source: AssociationSources, create?: false): Maybe<Set<StateEngineEntry["entryId"]>>;
 }
 
 interface StateValidatorFn {
@@ -117,7 +134,7 @@ interface PreRuleIterators {
   after: PreRuleIterator;
 }
 
-type ScoresMap = Map<AssociationSources, Map<StateEngineEntry["infoId"], number>>;
+type ScoresMap = Map<AssociationSources, Map<StateEngineEntry["entryId"], number>>;
 type PostRuleIteratorResult = [...PreRuleIteratorResult, score: number];
 type PostRuleIterator = () => Iterable<PostRuleIteratorResult>;
 interface PostRuleIterators {
@@ -146,7 +163,7 @@ interface PostRuleIterators {
 }
 
 interface StateEngineCacheData {
-  infoId: StateEngineData["infoId"];
+  entryId: StateEngineData["entryId"];
   score: number;
   priority: number | null;
   source: AssociationSources;
@@ -187,7 +204,7 @@ declare interface GameState {
   /**
    * A cache of pre-processed `StateEngineData` entries.
    */
-  $$stateDataCache?: Record<WorldInfoEntry["id"], StateEngineData>;
+  $$stateDataCache?: Record<StateEngineData["entryId"], StateEngineData & Record<string, unknown>>;
 }
 
 declare module "aid-bundler/src/aidData" {

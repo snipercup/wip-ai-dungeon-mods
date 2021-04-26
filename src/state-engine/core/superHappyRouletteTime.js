@@ -28,7 +28,7 @@ module.exports = (data) => {
     .filter(([matcher, { source }]) => {
       const theSet = getAssociationSet(ctx, source);
       if (!theSet) return false;
-      return theSet.has(matcher.infoId);
+      return theSet.has(matcher.entryId);
     })
     // Group everything by their sources, because I'm lazy.
     .thru((assoc) => groupBy(assoc, ([, { source }]) => source))
@@ -54,7 +54,7 @@ module.exports = (data) => {
 
   ctx.scoresMap = chain(winnersArr)
     .map(([source, kvps]) => {
-      const sourceMap = new Map(kvps.map(([matcher, score]) => tuple2(matcher.infoId, score)));
+      const sourceMap = new Map(kvps.map(([matcher, score]) => tuple2(matcher.entryId, score)));
       return tuple2(source, sourceMap);
     })
     .value((result) => new Map(result));
@@ -63,7 +63,7 @@ module.exports = (data) => {
   // it tells us to remove the current entry, another entry may be selected
   // in its stead.  That's why we did `[...spinToWin(roulette)]` earlier.
   // We pre-drew the winners, so we had fallbacks.
-  /** @type {Set<StateEngineEntry["infoId"]>} */
+  /** @type {Set<StateEngineEntry["entryId"]>} */
   const usedEntryIds = new Set();
   /** @type {Array<[StateEngineEntry, AssociationSources]>} */
   const usedEntries = [];
@@ -79,8 +79,8 @@ module.exports = (data) => {
       const winnerArr = [];
 
       for (const [matcher, score] of theContestants) {
-        const { type, stateEntry, infoId } = matcher;
-        if (usedEntryIds.has(infoId)) continue;
+        const { type, stateEntry, entryId } = matcher;
+        if (usedEntryIds.has(entryId)) continue;
         if (usedTypes.has(type)) continue;
 
         const preIters = makePreRuleIterators(ctx, stateEntry, source);
@@ -88,27 +88,27 @@ module.exports = (data) => {
         const result = matcher.stateEntry.postRules(matcher, source, score, neighbors);
         if (!result) continue;
 
-        usedEntryIds.add(infoId);
+        usedEntryIds.add(entryId);
         usedEntries.push([matcher.stateEntry, source]);
         usedTypes.add(type);
-        winnerArr.push(infoId);
+        winnerArr.push(entryId);
       }
 
       theWinners.set(source, new Set(winnerArr));
     }
     else {
       for (const [matcher, score] of theContestants) {
-        const { stateEntry, infoId } = matcher;
-        if (usedEntryIds.has(infoId)) continue;
+        const { stateEntry, entryId } = matcher;
+        if (usedEntryIds.has(entryId)) continue;
 
         const preIters = makePreRuleIterators(ctx, stateEntry, source);
         const neighbors = toPostRuleIterators(preIters, ctx.scoresMap, usedEntries);
         const result = matcher.stateEntry.postRules(matcher, source, score, neighbors);
         if (!result) continue;
 
-        usedEntryIds.add(infoId);
+        usedEntryIds.add(entryId);
         usedEntries.push([matcher.stateEntry, source]);
-        theWinners.set(source, new Set([infoId]));
+        theWinners.set(source, new Set([entryId]));
         break;
       }
     }

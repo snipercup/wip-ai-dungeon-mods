@@ -2,7 +2,8 @@
 const { tuple, chain, rollDice } = require("../utils");
 const { addStateEntry } = require("../state-engine/registry");
 const { isParamsFor } = require("../state-engine/utils");
-const { StateEngineEntry, iterUsedKeys } = require("../state-engine/StateEngineEntry");
+const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
+const { iterUsedKeys } = require("../state-engine/StateEngineEntry");
 
 // Configuration.
 /** NPC may be implicitly included based on chance. */
@@ -49,7 +50,7 @@ const init = (data) => {
     entry.include.add(entry.key);
   };
 
-  class PlayerEntry extends StateEngineEntry {
+  class PlayerEntry extends EngineEntryForWorldInfo {
     static get forType() { return "Player"; }
     get targetSources() { return tuple("implicit", "history"); }
     get priority() { return 100; }
@@ -107,12 +108,12 @@ const init = (data) => {
       if (typeof source !== "number") return false;
       // If this entry is already included implicitly, drop this association.
       for (const [otherEntry] of neighbors.getFor("implicit"))
-        if (otherEntry.infoId === this.infoId) return false;
+        if (otherEntry.entryId === this.entryId) return false;
       return false;
     }
   }
 
-  class NpcEntry extends StateEngineEntry {
+  class NpcEntry extends EngineEntryForWorldInfo {
     static get forType() { return "NPC"; }
     get targetSources() { return tuple("implicit", "history"); }
     get priority() { return 90; }
@@ -158,7 +159,7 @@ const init = (data) => {
     }
   }
 
-  class LocationEntry extends StateEngineEntry {
+  class LocationEntry extends EngineEntryForWorldInfo {
     static get forType() { return "Location"; }
     get targetSources() { return tuple("implicit"); }
     get priority() { return 50; }
@@ -183,7 +184,7 @@ const init = (data) => {
     }
   }
 
-  class LoreEntry extends StateEngineEntry {
+  class LoreEntry extends EngineEntryForWorldInfo {
     /**
      * @param {WorldInfoEntry} worldInfo
      */
@@ -268,7 +269,7 @@ const init = (data) => {
     }
   }
 
-  class StateEntry extends StateEngineEntry {
+  class StateEntry extends EngineEntryForWorldInfo {
     static get forType() { return "State"; }
     get targetSources() { return tuple("history"); }
 

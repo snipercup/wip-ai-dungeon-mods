@@ -57,18 +57,21 @@ exports.worldInfoString = (worldInfo, withExcerpt = false) => {
 /**
  * Converts a `StateEngineData` or `StateEngineEntry` into a standardized string.
  * 
- * @param {StateEngineData | StateEngineEntry} stateData
- * @param {WorldInfoEntry} worldInfo
- * @param {boolean} [withExcerpt]
+ * @param {Object} parts
+ * @param {string} parts.type
+ * @param {string} parts.entryId
+ * @param {Iterable<string>} parts.relations
+ * @param {string | null} [parts.key]
+ * @param {string} [parts.entryText]
  * @returns {string}
  */
-exports.stateDataString = (stateData, worldInfo, withExcerpt = false) => {
-  const { type, key, relations } = stateData;
+exports.stateDataString = (parts) => {
+  const { type, key, relations, entryId, entryText } = parts;
   const relPart = [...relations].filter((str) => str !== key).join(" & ");
   const keyPart = [key, relPart].filter(Boolean).join(": ");
   const typePart = keyPart ? `$${type}[${keyPart}]` : `$${type}`;
-  const result = `StateEntry#${worldInfo.id}<${typePart}>`;
-  if (!withExcerpt) return result;
+  const result = `StateEntry#${entryId}<${typePart}>`;
+  if (!entryText) return result;
 
-  return `${result}\n\t${exports.makeExcerpt(worldInfo.entry)}...`;
+  return `${result}\n\t${exports.makeExcerpt(entryText)}`;
 };

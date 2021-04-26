@@ -10,7 +10,6 @@ const turnCache = require("../../turn-cache");
   data.stateEngineContext = {
     matchCounter: memoizedCounter(),
     theCache: turnCache.forWrite(data, "StateEngine.association"),
-    worldInfoMap: {},
     entriesMap: {},
     validationIssues: new Map(),
     sortedStateMatchers: [],

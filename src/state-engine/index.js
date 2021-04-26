@@ -43,13 +43,15 @@ exports.inputModifier = (...stateModules) => {
 const reportOn = function* (worldInfoMap, stateDataCache, entries) {
   for (const [location, entry] of entries) {
     if (!entry) continue;
-    const info = worldInfoMap[entry.infoId];
-    if (!info) continue;
-    const data = stateDataCache[entry.infoId];
+    const data = stateDataCache[entry.entryId];
     if (!data) continue;
-    const ident = stateDataString(data, info);
+    /** @type {WorldInfoEntry | undefined} */
+    const info = worldInfoMap[entry.entryId];
+    const { type, entryId, relations, key, text } = data;
+    const textForExcerpt = text ?? info?.entry ?? "";
+    const ident = stateDataString({ type, entryId, relations, key });
     const score = entry.score.toFixed(2);
-    const excerpt = makeExcerpt(info.entry);
+    const excerpt = textForExcerpt ? makeExcerpt(textForExcerpt) : "(No excerpt available.)";
     yield `${ident} (${score}) @ ${location}\n\t${excerpt}`;
   }
 };

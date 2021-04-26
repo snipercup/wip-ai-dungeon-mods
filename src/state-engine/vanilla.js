@@ -1,8 +1,7 @@
 /// <reference path="./state-engine.d.ts" />
 const { tuple } = require("../utils");
-const { isParamsFor } = require("./utils");
 const { addStateEntry } = require("./registry");
-const { StateEngineEntry } = require("./StateEngineEntry");
+const { EngineEntryForWorldInfo } = require("./EngineEntryForWorldInfo");
 
 /**
  * Does some global setup for this module.
@@ -14,19 +13,17 @@ const { StateEngineEntry } = require("./StateEngineEntry");
    * A simple state entry type for the vanilla world info, for backward compatibility
    * with the standard system.
    */
-  class VanillaEntry extends StateEngineEntry {
+  class VanillaEntry extends EngineEntryForWorldInfo {
     static get forType() { return "VanillaEntry"; }
     get targetSources() { return tuple("history"); }
 
     /**
      * @param {WorldInfoEntry} worldInfo
-     * @returns {StateEngineData}
+     * @returns {Omit<StateEngineData, "entryId">}
      */
     parse(worldInfo) {
-      const { id, keys } = worldInfo;
+      const { keys } = worldInfo;
       return {
-        infoId: id,
-        infoKey: keys,
         key: null,
         type: "VanillaEntry",
         relations: [],

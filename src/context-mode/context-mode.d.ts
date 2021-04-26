@@ -6,9 +6,7 @@ interface ContextModeModule {
 }
 
 interface ContextData extends StateEngineData, StateEngineCacheData {
-  /** The source `WorldInfoEntry`. */
-  worldInfo: WorldInfoEntry;
-  /** The extracted `entry` from the `WorldInfoEntry`. */
+  /** The entry's text. */
   text: string;
 }
 

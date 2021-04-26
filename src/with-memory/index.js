@@ -58,6 +58,7 @@ const extractMemory = (data) => {
     if (line) memoryOut.push(line);
   }
 
+  // @ts-ignore - More of those TS4 bugs.
   const [, finalSummary = ""] = reStorySoFar.exec(summaryOut.join("\n")) ?? [];
   return { playerMemory: memoryOut.join("\n"), summary: finalSummary };
 };

@@ -14,7 +14,7 @@ module.exports = (data) => {
 
   for (const [matcher, params] of associationsHelper(data, usedKeys)) {
     const result = matcher.stateEntry.associator(matcher, params);
-    if (result) getAssociationSet(ctx, params.source, true).add(matcher.infoId);
+    if (result) getAssociationSet(ctx, params.source, true).add(matcher.entryId);
   }
 
   //console.log([...usedKeys].map(([key, theSet]) => `${key} uses: ${[...theSet].join(", ")}`));

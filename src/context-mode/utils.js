@@ -1,5 +1,5 @@
 /// <reference path="../state-engine/state-engine.d.ts" />
-const { chain, toPairs, fromPairs, tuple2, iterReverse } = require("../utils");
+const { dew, chain, toPairs, fromPairs, tuple2, iterReverse } = require("../utils");
 const turnCache = require("../turn-cache");
 
 /**
@@ -49,20 +49,26 @@ exports.getStateEngineData = (aidData, assocData) => {
   const { $$stateDataCache } = aidData.state;
   if (!$$stateDataCache) return undefined;
 
-  // Does it have this world-info's parsed data?
-  const stateData = $$stateDataCache[assocData.infoId];
+  // Can we find this entry's cached data?
+  const stateData = $$stateDataCache[assocData.entryId];
   if (!stateData) return undefined;
 
-  // Can we find the world-info's text?
-  const worldInfo = aidData.worldEntries.find((wi) => wi.id === assocData.infoId);
-  if (!worldInfo) return undefined;
+  // And locate some text for the entry?
+  const text = dew(() => {
+    if (stateData.text) return stateData.text;
 
-  // Does it contain text?
-  const text = worldInfo.entry.trim();
+    // Try and pull up a world-info from the ID.
+    if (stateData.forWorldInfo !== true) return undefined;
+    const worldInfo = aidData.worldEntries.find((wi) => wi.id === assocData.entryId);
+    if (worldInfo) return worldInfo.entry.trim();
+    return undefined;
+  })
+
+  // Pass this up if we have no text; it's not useful for context construction.
   if (!text) return undefined;
 
   const { score, priority, source } = assocData;
-  return { ...stateData, worldInfo, score, priority, source, text };
+  return { ...stateData, score, priority, source, text };
 };
 
 /**

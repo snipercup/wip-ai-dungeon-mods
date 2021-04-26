@@ -37,7 +37,7 @@ const produceContextMemory = (playerMemory, summary, cacheData, getEntryText) =>
 
   return chain()
     .concat(forContext, forHistory)
-    .map((entry) => ({ ...entry, text: getEntryText(entry.infoId)}))
+    .map((entry) => ({ ...entry, text: getEntryText(entry.entryId)}))
     .concat(convertPlayerMemory(playerMemory))
     .thru(entrySorter)
     .thru((notes) => entrySelector(notes, 1001 - resolvedSummary.length, {
@@ -75,13 +75,13 @@ module.exports = (data) => {
   
   // Only set these if it is not already set by something else.
   if (cacheData.forAuthorsNote) {
-    const entry = ctx.entriesMap[cacheData.forAuthorsNote.infoId];
+    const entry = ctx.entriesMap[cacheData.forAuthorsNote.entryId];
     const newAuthorsNote = getText(entry).trim();
     if (newAuthorsNote) memory.authorsNote = newAuthorsNote;
   }
   
   if (cacheData.forFrontMemory && !memory.frontMemory) {
-    const entry = ctx.entriesMap[cacheData.forFrontMemory.infoId];
+    const entry = ctx.entriesMap[cacheData.forFrontMemory.entryId];
     const newFrontMemory = getText(entry).trim();
     if (newFrontMemory) memory.frontMemory = newFrontMemory;
   }

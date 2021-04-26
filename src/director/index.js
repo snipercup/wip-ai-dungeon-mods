@@ -3,7 +3,7 @@
 const { tuple } = require("../utils");
 const { isParamsFor } = require("../state-engine/utils");
 const { addStateEntry } = require("../state-engine/registry");
-const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
+const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
 
 /**
  * Does some global setup for this module.
@@ -23,7 +23,7 @@ const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
    * - Keywords
    * - Relations
    */
-  class DirectionEntry extends StateEngineEntry {
+  class DirectionEntry extends EngineEntryForWorldInfo {
     /**
      * @param {WorldInfoEntry} worldInfo
      */

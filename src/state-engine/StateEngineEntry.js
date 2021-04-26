@@ -5,62 +5,10 @@ const { MatchableEntry } = require("./MatchableEntry");
 
 /** Common regular expressions for parsing state entry definitions. */
 exports.regex = {
-  /**
-   * Parses an info entry into its type and the info declaration:
-   * - "$Location" => `["Location", undefined]`
-   * - "$Player[Ike]" => `["Player", "[Ike]"]`
-   * - "$Lore[Temple]" => `["Lore", "[Temple]"]`
-   * - "$Lore[Temple: Ike & Marth]" => `["Lore", "[Temple: Ike & Marth]"]`
-   * - "$Lore[Temple](temple; ancient)" => `["Lore", "[Temple](temple; ancient)"]`
-   * - "$State(weapon; sword)" => `["State", "(weapon; sword)"]`
-   */
-  infoEntry: /^\$(\w+?)((?:\[|\().*)?$/,
-  /**
-   * Parses an info declaration into its full-key and keyword parts:
-   * - "[Ike]" => `["Ike", undefined]`
-   * - "[Temple]" => `["Temple", undefined]`
-   * - "[Temple: Ike & Marth]" => `["Temple: Ike & Marth", undefined]`
-   * - "[Temple](temple; ancient)" => `["Temple", "temple; ancient"]`
-   * - "(weapon; sword)" => `[undefined, "weapon; sword"]`
-   */
-  infoDeclaration: /^(?:\[(.*?)\])?(?:\((.+?)\))?$/,
-  /**
-   * Parses a full-key into its key and its related-keys parts:
-   * - "Ike" => `["Ike", undefined]`
-   * - "Temple" => `["Temple", undefined]`
-   * - "Temple: Ike & Marth" => `["Temple", "Ike & Marth"]`
-   */
-  infoFullKey: /^(\w+?)(?::\s*?(.*))?$/,
-  /**
-   * Parses a relation set, only.  It must contain `&`.
-   * - "Ike & Marth" => `[undefined, "Ike & Marth"]`
-   * - "Ike & Marth & Lucina" => `[undefined, "Ike & Marth & Lucina"]`
-   * 
-   * Used as a fallback if `infoFullKey` fails to match anything.
-   */
-  infoRelOnly: /^()((?:\w+(?: *& *)?)*)$/,
-  /**
-   * Parses a keyword part:
-   * - "()" => `[undefined]`
-   * - "(temple; ancient)" => `["temple; ancient"]`
-   */
-  infoKeywords: /^\((.*)?\)$/,
   /** Matches keywords intended for inclusion matching; accepts an optional leading "+". */
   includedKeyword: /^\+?([\w ]+)$/,
   /** Matches keywords intended for exclusion matching; requires a leading "-". */
   excludedKeyword: /^-([\w ]+)$/
-};
-
-/**
- * Extracts the type for a `StateEngineEntry` from a `WorldInfoEntry`.
- * 
- * @param {WorldInfoEntry} worldInfo
- * @returns {string | undefined}
- */
-exports.extractType = (worldInfo) => {
-  // @ts-ignore - TS too dumb with `??` and `[]`.
-  const [, type] = exports.regex.infoEntry.exec(worldInfo.keys) ?? [];
-  return type;
 };
 
 /**
@@ -87,38 +35,6 @@ exports.parseKeywords = (keywords, reMatcher) => {
 };
 
 /**
- * The default World Info parser for a standard State Entry.
- * 
- * @param {WorldInfoEntry["id"]} infoId
- * @param {WorldInfoEntry["keys"]} infoKey
- * @returns {StateEngineData | undefined}
- */
-exports.infoKeyParserImpl = (infoId, infoKey) => {
-  const {
-    infoEntry, infoDeclaration, infoFullKey, infoRelOnly,
-    includedKeyword, excludedKeyword
-  } = exports.regex;
-
-  const [, type, dec] = infoEntry.exec(infoKey) ?? [];
-  if (!type) return undefined;
-
-  const [, fullKey, keywordPart] = infoDeclaration.exec(dec) ?? [];
-  // Full-key part parsing.
-  // @ts-ignore - TS too dumb with `??` and `[]`.
-  const [, key = null, relationPart] = dew(() => {
-    if (!fullKey) return [];
-    return infoFullKey.exec(fullKey) ?? infoRelOnly.exec(fullKey) ?? [];
-  });
-  const relations = relationPart?.split("&").map(s => s.trim()).filter(Boolean) ?? [];
-  // Keyword part parsing.
-  const keywords = keywordPart?.split(";").map(s => s.trim()).filter(Boolean) ?? [];
-  const include = exports.parseKeywords(keywords, includedKeyword);
-  const exclude = exports.parseKeywords(keywords, excludedKeyword);
-
-  return { infoId, infoKey, type, key, relations, include, exclude };
-};
-
-/**
  * Iterates a `usedKeys` map across a range of entries.
  * Bear in mind that the `start` and `end` are offsets from the latest
  * `history` entry into the past.
@@ -142,6 +58,9 @@ exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
   }
 }
 
+/**
+ * Error for general errors involving `StateEngineEntry`.
+ */
 class BadStateEntryError extends Error {
   /**
    * @param {string} message
@@ -149,30 +68,39 @@ class BadStateEntryError extends Error {
   constructor(message) {
     super(message);
 
-    // @ts-ignore
-    Error.captureStackTrace?.(this, CustomError);
+    // @ts-ignore - That's why we're checking, TS.
+    Error.captureStackTrace?.(this, this.constructor);
     this.name = this.constructor.name;
   }
 }
 
+/**
+ * More specific error involving type mismatches while generating
+ * `StateEngineEntry` instances.
+ */
+class InvalidTypeError extends BadStateEntryError {}
+
 class StateEngineEntry {
   /**
-   * @param {WorldInfoEntry} worldInfo
+   * @param {string} entryId
+   * @param {string | null} [entryKey]
+   * @param {Object} [matchingOpts]
+   * @param {string[]} [matchingOpts.relations]
+   * @param {string[]} [matchingOpts.include]
+   * @param {string[]} [matchingOpts.exclude]
    */
-  constructor(worldInfo) {
-    this.worldInfo = worldInfo;
-    const parsedResult = this.parse(worldInfo);
-
-    this.infoId = parsedResult.infoId;
-    this.infoKey = parsedResult.infoKey;
-    this.key = parsedResult.key;
-    this.relations = new Set(parsedResult.relations);
-    this.include = new Set(parsedResult.include);
-    this.exclude = new Set(parsedResult.exclude);
+  constructor(entryId, entryKey, matchingOpts) {
+    this.entryId = entryId;
+    this.key = entryKey ?? null;
+    this.relations = new Set(matchingOpts?.relations);
+    this.include = new Set(matchingOpts?.include);
+    this.exclude = new Set(matchingOpts?.exclude);
   }
 
   /**
-   * The type for this kind of entry.  Must be overridden by children.
+   * The type for this kind of entry.
+   * 
+   * Must be overridden by child classes.
    * 
    * @type {string}
    */
@@ -181,6 +109,20 @@ class StateEngineEntry {
       "Override me with a type string.",
       "IE: if I'm for `$Lore`, make me return `\"Lore\"`."
     ].join("  "));
+  }
+
+  /**
+   * Given the `AIDData` object, returns an interable of `StateEngineEntry`
+   * instances that could be built for this class.
+   * 
+   * Must be overridden by child classes.
+   * 
+   * @param {AIDData} data
+   * @param {Map<string, string[]>} issuesMap
+   * @returns {Iterable<StateEngineEntry>}
+   */
+  static produceEntries(data, issuesMap) {
+    throw new TypeError("Override me so I produce entries of this type.");
   }
 
   /**
@@ -194,12 +136,12 @@ class StateEngineEntry {
   }
 
   /**
-   * The associated text of this entry.
+   * The associated text of this entry.  Defaults to an empty-string.
    * 
    * @type {string}
    */
   get text() {
-    return this.worldInfo.entry;
+    return "";
   }
 
   /**
@@ -226,37 +168,6 @@ class StateEngineEntry {
    */
   get priority() {
     return undefined;
-  }
-
-  /**
-   * Transforms a `WorldInfoEntry` into a `WorldStateData` object by parsing its
-   * `keys` property.  If it fails, it will return `null`.
-   * 
-   * @param {WorldInfoEntry} worldInfo 
-   * @throws If parsing failed.
-   * @throws If parsing succeeded, but the extracted type did not match.
-   * @returns {StateEngineData}
-   */
-  parse(worldInfo) {
-    const { id, keys } = worldInfo;
-    if (keys.indexOf(",") !== -1)
-      throw new BadStateEntryError([
-        "The World Info entry's keys contain a comma.",
-        "Keywords should be separated by a semi-colon (;), instead."
-      ].join("  "));
-
-    const parsedResult = exports.infoKeyParserImpl(id, keys);
-    if (!parsedResult)
-      throw new BadStateEntryError(
-        `Failed to parse World Info entry as a \`${this.type}\`.`
-      );
-    if (parsedResult.type !== this.type)
-      throw new BadStateEntryError([
-        `Expected World Info entry to parse as a \`${this.type}\``,
-        `but it parsed as a \`${parsedResult.type}\` instead.`
-      ].join(", "));
-
-    return parsedResult;
   }
 
   /**
@@ -520,7 +431,9 @@ class StateEngineEntry {
    * @returns {string}
    */
   toString(withExcerpt) {
-    return stateDataString(this, this.worldInfo, withExcerpt);
+    const { type, entryId, relations, key, text: entryText } = this;
+    if (!withExcerpt) return stateDataString({ type, entryId, relations, key });
+    return stateDataString({ type, entryId, relations, key, entryText });
   }
 
   /**
@@ -529,13 +442,14 @@ class StateEngineEntry {
    * @returns {StateEngineData}
    */
   toJSON() {
-    const { infoId, infoKey, type, key } = this;
+    const { type, entryId, key } = this;
     const relations = [...this.relations];
     const include = [...this.include];
     const exclude = [...this.exclude];
-    return { infoId, infoKey, type, key, relations, include, exclude };
+    return { type, entryId, key, relations, include, exclude };
   }
 }
 
 exports.StateEngineEntry = StateEngineEntry;
 exports.BadStateEntryError = BadStateEntryError;
+exports.InvalidTypeError = InvalidTypeError;

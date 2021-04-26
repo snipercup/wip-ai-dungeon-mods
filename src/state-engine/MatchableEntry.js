@@ -76,8 +76,8 @@ class MatchableEntry {
     return this.stateEntry.text;
   }
 
-  get infoId() {
-    return this.stateEntry.infoId;
+  get entryId() {
+    return this.stateEntry.entryId;
   }
 
   get type() {

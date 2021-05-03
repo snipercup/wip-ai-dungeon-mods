@@ -1,6 +1,16 @@
 /** The primative data-types. */
 type Primatives = number | string | boolean | Function | {};
 
+type UnionToIntersection<T>
+  = (T extends any ? (x: T) => any : never) extends
+    (x: infer R) => any ? R : never;
+
+type PartitionResult<KVP> = KVP extends [infer K, infer V] ? [K, V[]] : never;
+type FromPairsResult<KVP>
+  = KVP extends [infer K, infer V]
+    ? K extends string | number ? { [Prop in K]: V } : never
+  : never;
+
 type Chainable<TEl, TIter extends Iterable<TEl>> = TIter;
 type ElementOf<T> = T extends Iterable<infer TEl> ? TEl : never;
 

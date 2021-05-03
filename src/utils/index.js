@@ -78,10 +78,9 @@ exports.hasIterator = (value) =>
 /**
  * Creates an object from key-value-pairs.
  * 
- * @template {string | number} TKey
- * @template TValue
- * @param {Iterable<[TKey, TValue]>} kvps
- * @returns {Record<TKey, TValue>}
+ * @template {[string | number, any]} KVP
+ * @param {Iterable<KVP>} kvps
+ * @returns {UnionToIntersection<FromPairsResult<KVP>>}
  */
 exports.fromPairs = (kvps) => {
   /** @type {any} Oh, shove off TS. */
@@ -278,17 +277,22 @@ exports.groupBy = function* (iterable, transformFn) {
   for (const group of groups) yield group;
 };
 
+/** @type {<KVP extends [any, any]>(kvp: KVP) => KVP[0]} */
+const partitionKeys = ([key]) => key;
+/** @type {<KVP extends [any, any]>(kvp: KVP) => KVP[1]} */
+const partitionValues = ([, value]) => value;
+
 /**
  * Creates an iterable that groups key-value-pairs when they share the same key.
  * 
- * @template TValue
- * @template TKey
- * @param {Iterable<[TKey, TValue]>} iterable
- * @returns {Iterable<[TKey, TValue[]]>}
+ * @template {[any, any]} KVP
+ * @param {Iterable<KVP>} iterable
+ * @returns {Iterable<PartitionResult<KVP>>}
  */
 exports.partition = function* (iterable) {
-  for (const [key, values] of exports.groupBy(iterable, ([key]) => key)) {
-    const group = values.map(([, value]) => value);
+  for (const [key, values] of exports.groupBy(iterable, partitionKeys)) {
+    const group = values.map(partitionValues);
+    // @ts-ignore - This is correct.
     yield [key, group];
   }
 };

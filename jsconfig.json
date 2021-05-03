@@ -8,5 +8,5 @@
     "lib": ["es2019", "es2020"]
   },
   "include": ["src/**/*.js", "src/global.d.ts"],
-  "exclude": ["node_modules", "OLD"]
+  "exclude": ["node_modules"]
 }

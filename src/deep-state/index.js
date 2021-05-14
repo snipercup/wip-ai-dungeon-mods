@@ -223,19 +223,23 @@ const init = (data) => {
         .filter((sd) => {
           // Must be the same type.
           if (sd.type !== this.type) return false;
+          // Must also have keys defined.
+          if (sd.keys.size === 0) return false;
           // Must have the same keys. This is basically, `sd.keys === this.keys`, but
           // stupid because `Set` has none of the actual set operations on it.
           // If they are not the same, the size will increase.
-          if ((new Set([...sd.keys, ...this.keys])).size !== this.keys.size) return false;
+          const joinedSet = new Set([...sd.keys, ...this.keys]);
+          if (joinedSet.size !== this.keys.size) return false;
           // Cannot have any negative matchers of any kind.
           if (sd.keywords.some(isExclusiveKeyword)) return false;
           if (sd.relations.some(isNegatedRelation)) return false;
           // But it does need to have at least one positive matcher.
-          if (!sd.keywords.length && !sd.relations.length) return false;
+          const matcherCount = sd.keywords.length + sd.relations.length;
+          if (matcherCount === 0) return false;
           return true;
         })
         .toArray();
-      
+
       // Must be exactly one match for this to apply.
       if (duplicateEntries.length !== 1) return;
 

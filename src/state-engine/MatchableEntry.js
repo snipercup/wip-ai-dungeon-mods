@@ -1,21 +1,29 @@
 /// <reference path="./state-engine.d.ts" />
-const { chain, countOccurences, escapeRegExp } = require("../utils");
+const { chain, tuple, fromPairs, partition } = require("../utils");
+const { countOccurences, escapeRegExp } = require("../utils");
+const { isInclusiveKeyword, isExclusiveKeyword } = require("./StateEngineEntry");
 
 /** @typedef {import("../utils")[]} */
 
 /**
- * Pattern to create a matcher from a keyword.  The start of the keyword
- * must be matched, so the keyword "key" will match "key" and "keystone",
- * but not "smokey".
+ * Pattern to create a matcher from a keyword.
+ * 
+ * When `exactMatch` is `false`, the start of the keyword must be matched, so
+ * the keyword "key" will match "key" and "keystone", but not "smokey".
  * 
  * This at least gives some allowance for handling common English plurals,
  * like "keys" but is at least more likely to match what you intend.
  * 
+ * When `exactMatch` is `true`, the keyword must match exactly.
+ * 
  * @param {string} kw
+ * @param {boolean} [exactMatch]
  * @returns {string}
  */
-const keywordPattern = (kw) =>
-  `(?:[\\s'"]|^)${escapeRegExp(kw.trim())}`;
+const keywordPattern = (kw, exactMatch = false) => {
+  if (!exactMatch) return `(?:\\b|^)${escapeRegExp(kw.trim())}`;
+  return `(?:\\b|^)${escapeRegExp(kw.trim())}(?:\\b|$)`
+};
 
 /**
  * Memoized counting function to speed up regular-expression matching with
@@ -62,14 +70,21 @@ class MatchableEntry {
     const targets = stateEntry.targetSources;
     this.targetSources = targets ? new Set(targets) : defaultTargets;
 
-    this.include = chain(stateEntry.include)
-      .map((kw) => new RegExp(keywordPattern(kw), "i"))
-      .toArray();
+    // @ts-ignore - TS is stupid with defaults in destructuring.
+    // It's still typing correctly, though.
+    const { include = [], exclude = [] } = chain(stateEntry.keywords)
+      .map((kw) => {
+        if (isInclusiveKeyword(kw))
+          return tuple("include", new RegExp(keywordPattern(kw.value, kw.exactMatch), "i"));
+        if (isExclusiveKeyword(kw))
+          return tuple("exclude", new RegExp(keywordPattern(kw.value, kw.exactMatch), "i"));
+        throw new Error(`Unknown keyword type: ${kw.type}`);
+      })
+      .thru((kvps) => partition(kvps))
+      .value((kvps) => fromPairs(kvps));
 
-    this.exclude = chain(stateEntry.exclude)
-      .filter(Boolean)
-      .map((kw) => new RegExp(keywordPattern(kw), "i"))
-      .toArray();
+    this.include = include;
+    this.exclude = exclude;
   }
 
   get text() {

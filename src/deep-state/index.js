@@ -2,8 +2,6 @@
 const { tuple, chain, rollDice } = require("../utils");
 const { addStateEntry } = require("../state-engine/registry");
 const { isParamsFor } = require("../state-engine/utils");
-const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
-const { iterUsedKeys } = require("../state-engine/StateEngineEntry");
 
 // Configuration.
 /** NPC may be implicitly included based on chance. */
@@ -35,19 +33,29 @@ const npcImplicitInclusionDiceSides = 20;
  * @type {BundledModifierFn}
  */
 const init = (data) => {
+  const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
+  const { RelatableEntry } = require("../state-engine/RelatableEntry");
+  const { iterUsedKeys } = require("../state-engine/StateEngineEntry");
+  const { isExclusiveKeyword, isInclusiveKeyword, isRelationOfType } = require("../state-engine/StateEngineEntry");
+  /** @type {(relDef: AnyRelationDef) => boolean} */
+  const isNegatedRelation = (relDef) => isRelationOfType(relDef, "negated");
+  /** @type {(relDef: AnyRelationDef) => boolean} */
+  const isInclusiveRelation = (relDef) => !isNegatedRelation(relDef);
+
   const { info } = data;
 
   /**
-   * We implicitly include the `key` for `Player` and `NPC` as a keyword.
+   * We implicitly include the first string in `keys` for `Player` and `NPC` as a keyword.
    * 
    * @param {StateEngineEntry} entry 
    * @returns {void}
    */
   const addKeyAsKeyword = (entry) => {
-    // Should not happen; to make TS happy.
-    if (!entry.key) return;
-    if (entry.include.has(entry.key)) return;
-    entry.include.add(entry.key);
+    const [mainKey] = entry.keys;
+    if (!mainKey) return;
+    const hasMainKey = entry.keywords.some((kw) => kw.type === "include" && kw.value === mainKey);
+    if (hasMainKey) return;
+    entry.keywords.push({ type: "include", exactMatch: true, value: mainKey });
   };
 
   class PlayerEntry extends EngineEntryForWorldInfo {
@@ -57,9 +65,9 @@ const init = (data) => {
 
     validator() {
       const issues = super.validator();
-      if (!this.key)
-        issues.push(`World info entry \`${this.infoKey}\` must have a key.`);
-      if (this.relations.size)
+      if (!this.keys.size)
+        issues.push(`World info entry \`${this.infoKey}\` must have at least one key.`);
+      if (this.relations.length)
         issues.push(`World info entry \`${this.infoKey}\` cannot have relations.`);
       return issues;
     }
@@ -120,9 +128,9 @@ const init = (data) => {
 
     validator() {
       const issues = super.validator();
-      if (!this.key)
-        issues.push(`World info entry \`${this.infoKey}\` must have a key.`);
-      if (this.relations.size)
+      if (!this.keys.size)
+        issues.push(`World info entry \`${this.infoKey}\` must have at least one key.`);
+      if (this.relations.length)
         issues.push(`World info entry \`${this.infoKey}\` cannot have relations.`);
       return issues;
     }
@@ -166,10 +174,10 @@ const init = (data) => {
 
     validator() {
       const issues = super.validator();
-      if (this.key)
+      if (this.keys.size)
         issues.push(`World info entry \`${this.infoKey}\` cannot be given a key.`);
-      if (this.include.size || this.exclude.size)
-        issues.push(`World info entry \`${this.infoKey}\` cannot be given keywords.`);
+      if (this.relations.length || this.keywords.length)
+        issues.push(`World info entry \`${this.infoKey}\` cannot have any matchers.`);
       return issues;
     }
 
@@ -202,25 +210,28 @@ const init = (data) => {
      * @returns {void}
      */
     modifier(allStates) {
-      if (this.key == null) return;
-      if (this.include.size > 0) return;
-      const { relations: ownRelations } = this;
+      if (this.keys.size === 0) return;
+      if (this.keywords.some(isInclusiveKeyword)) return;
+      if (this.relations.some(isInclusiveRelation)) return;
 
-      // If a `$Lore` has the same `key` as another entry of the same type,
-      // and this entry lacks inclusive keywords, but the other does not, we'll
-      // copy those keywords to this entry.  This makes it a little less irritating
+      // If a `$Lore` has the same `keys` as another entry of the same type,
+      // and this entry lacks inclusive matchers, but the other does not, we'll
+      // copy those matchers to this entry.  This makes it a little less irritating
       // to create multiple lore entries for the same concept or thing.
-      // Only works for lore entries with no exclusion keywords.
+      // Only works for lore entries with no exclusion keywords or negated relations.
       const duplicateEntries = chain(allStates.values())
-        .filter((sd) => sd.type === this.type)
-        .filter((sd) => sd.key === this.key)
-        .filter((sd) => sd.include.size > 0)
-        .filter((sd) => sd.exclude.size === 0)
         .filter((sd) => {
-          // They must also share the same relations, if they have them.
-          if (sd.relations.size !== ownRelations.size) return false;
-          for (const otherRel of sd.relations)
-            if (!ownRelations.has(otherRel)) return false;
+          // Must be the same type.
+          if (sd.type !== this.type) return false;
+          // Must have the same keys. This is basically, `sd.keys === this.keys`, but
+          // stupid because `Set` has none of the actual set operations on it.
+          // If they are not the same, the size will increase.
+          if ((new Set([...sd.keys, ...this.keys])).size !== this.keys.size) return false;
+          // Cannot have any negative matchers of any kind.
+          if (sd.keywords.some(isExclusiveKeyword)) return false;
+          if (sd.relations.some(isNegatedRelation)) return false;
+          // But it does need to have at least one positive matcher.
+          if (!sd.keywords.length && !sd.relations.length) return false;
           return true;
         })
         .toArray();
@@ -228,8 +239,33 @@ const init = (data) => {
       // Must be exactly one match for this to apply.
       if (duplicateEntries.length !== 1) return;
 
-      const [choosenEntry] = duplicateEntries;
-      this.include = new Set([...choosenEntry.include]);
+      const [chosenEntry] = duplicateEntries;
+      this.keywords = [...chosenEntry.keywords];
+      this.relations = [...chosenEntry.relations];
+      // Don't forget to set a new relator!
+      this.relator = new RelatableEntry(this.relations);
+    }
+
+    /**
+     * If a`$Lore` entry lacks keywords, we limit the range the relations can match
+     * to only the current history entry and the one immediately before it.
+     * 
+     * @param {MatchableEntry} matcher
+     * @param {AssociationParamsFor<this>} params
+     * @returns {boolean}
+     * Whether this entry's relations were satisfied for this source.
+     */
+     checkRelations(matcher, params) {
+      if (this.keywords.length) return super.checkRelations(matcher, params);
+      if (!isParamsFor("history", params)) return false;
+      const { source, usedKeys } = params;
+
+      if (this.relations.length === 0) return true;
+      const nearbyUsedKeys = new Set(iterUsedKeys(usedKeys, source, source + 1));
+      const result = this.relator.check(nearbyUsedKeys);
+      if (result === false) return false;
+      this.relationCounts.set(source, result);
+      return true;
     }
 
     /**
@@ -241,12 +277,14 @@ const init = (data) => {
     preRules(matcher, source, neighbors) {
       // Do some pre-processing, looking for matching `State` entries that
       // reference this `Lore`.
-      const { key } = this;
-      if (!key) return true;
+      const { keys } = this;
+      if (keys.size === 0) return true;
 
+      // Later states only, because we don't want this lore entry over
+      // shadowing the more important state entry.
       for (const [otherEntry] of neighbors.after()) {
         if (otherEntry.type !== "State") continue;
-        if (!otherEntry.relations.has(key)) continue;
+        if (!otherEntry.relator.check(keys)) continue;
         this.hasMatchedStateEntry = true;
         break;
       }
@@ -262,8 +300,6 @@ const init = (data) => {
      */
     valuator(matcher, source, entry) {
       // Give a boost if this `Lore` was referenced by a later `State`.
-      // Later states only, because we don't want this lore entry over
-      // shadowing the more important state entry.
       const scalar = this.hasMatchedStateEntry ? 2 : 1;
       return super.valuator(matcher, source, entry, scalar);
     }
@@ -275,34 +311,16 @@ const init = (data) => {
 
     validator() {
       const issues = super.validator();
-      if (!this.key)
-        issues.push(`World info entry \`${this.infoKey}\` must have a key.`);
+      if (this.keys.size > 1)
+        issues.push(`World info entry \`${this.infoKey}\` cannot have more than one key.`);
       return issues;
-    }
-
-    /**
-     * @param {Map<string, StateDataForModifier>} allStates
-     * @returns {void}
-     */
-    modifier(allStates) {
-      if (this.key == null) return;
-
-      // If a `$State` has the same `key` as another entry of a different type,
-      // we'll implicitly make it related to it.
-      const duplicateEntries = chain(allStates.values())
-        .filter((sd) => sd.type !== this.type)
-        .filter((sd) => sd.key === this.key)
-        .toArray();
-
-      if (duplicateEntries.length === 0) return;
-      this.relations = new Set([...this.relations, this.key]);
     }
 
     /**
      * The "State" type is a little bit different.  It's for immediately relevant
      * information.  When it has relations, we want to only associate this with
      * entries that are nearby to the related matches.  We define this as being
-     * within 3 history entries.
+     * the current history entry and the two immediately before it.
      * 
      * @param {MatchableEntry} matcher
      * @param {AssociationParamsFor<this>} params
@@ -313,24 +331,12 @@ const init = (data) => {
       if (!isParamsFor("history", params)) return false;
       const { source, usedKeys } = params;
 
-      if (this.relations.size === 0) return true;
+      if (this.relations.length === 0) return true;
       const nearbyUsedKeys = new Set(iterUsedKeys(usedKeys, source, source + 2));
-      for (const key of this.relations)
-        if (!nearbyUsedKeys.has(key)) return false;
+      const result = this.relator.check(nearbyUsedKeys);
+      if (result === false) return false;
+      this.relationCounts.set(source, result);
       return true;
-    }
-
-    /**
-     * Only adds the key to `usedKeys` if its key does not appear in its own relations.
-     * 
-     * @param {AssociationParamsFor<this>} params 
-     * @returns {void}
-     */
-    recordKeyUsage(params) {
-      // If our `key` is also used in one of our relations, do not add it to
-      // the `usedKeys` map.
-      if (!this.key || this.relations.has(this.key)) return;
-      super.recordKeyUsage(params);
     }
 
     /**
@@ -360,7 +366,7 @@ const init = (data) => {
         if (otherEntry.type !== "State") continue;
         curCount += 1;
       }
-      return true;
+      return curCount < 2;
     }
   }
 

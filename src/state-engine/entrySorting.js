@@ -46,46 +46,82 @@ exports.sortingHelpers = (theEntries) => {
   // The map will contain the lowest priority from the prioritized entries that all
   // share a key.
   for (const entry of theEntries) {
-    if (!entry.key) continue;
+    if (!entry.keys || entry.keys.size === 0) continue;
 
     /** @type {Set<string>} */
     const relatives = new Set();
-    const setOfEntries = keyToEntries.get(entry.key) ?? new Set();
-    
-    setOfEntries.add(entry);
-    relatives.add(entry.key);
-    knownKeys.add(entry.key);
 
-    if (entry.priority != null) {
-      const curPriority = keyToPriority.get(entry.key);
-      if (curPriority == null || entry.priority > curPriority)
-        keyToPriority.set(entry.key, entry.priority);
+    for (const key of entry.keys) {
+      const setOfEntries = keyToEntries.get(key) ?? new Set();
+      
+      setOfEntries.add(entry);
+      relatives.add(key);
+      knownKeys.add(key);
+
+      if (entry.priority != null) {
+        const curPriority = keyToPriority.get(key);
+        if (curPriority == null || entry.priority > curPriority)
+          keyToPriority.set(key, entry.priority);
+      }
+
+      if (entry.relations != null)
+        for (const rel of entry.relations)
+          if (rel.type !== "negated")
+            relatives.add(rel.key);
+
+      entryToRelatives.set(entry, relatives);
+      keyToEntries.set(key, setOfEntries);
     }
-
-    if (entry.relations != null)
-      for (const rel of entry.relations)
-        relatives.add(rel);
-
-    entryToRelatives.set(entry, relatives);
-    keyToEntries.set(entry.key, setOfEntries);
   }
 
   /**
-   * Obtains the relations that have matches to other entries in this group.
+   * Determines if two entries share at least one key.
+   * 
+   * @param {SortableEntry} a 
+   * @param {SortableEntry} b 
    */
-  const getIncludedRelations = dew(() => {
+  const haveSharedKeys = (a, b) => {
+    if (!a.keys || !b.keys) return false;
+    for (const key of a.keys)
+      if (b.keys.has(key)) return true;
+    return false;
+  };
+
+  /**
+   * Obtains the inclusive relations for an entry.
+   */
+   const getInclusiveRelations = dew(() => {
     /**
      * @param {SortableEntry} entry
      * @returns {string[]}
      */
-    const getIncludedRelations = (entry) =>
-      entry.relations?.filter((v) => knownKeys.has(v)) ?? [];
+    const getInclusiveRelations = (entry) => {
+      if (!entry.relations) return [];
+      return entry.relations
+        .filter((v) => v.type !== "negated")
+        .map((v) => v.key);
+    };
 
-    return memoize(getIncludedRelations);
+    return memoize(getInclusiveRelations);
   });
 
   /**
-   * Traverses the entries that belong to an entry's family.
+   * Obtains the relations that have matches to other entries in this group.
+   */
+  const getMatchedRelations = dew(() => {
+    /**
+     * @param {SortableEntry} entry
+     * @returns {string[]}
+     */
+    const getMatchedRelations = (entry) =>
+      getInclusiveRelations(entry).filter((k) => knownKeys.has(k));
+
+    return memoize(getMatchedRelations);
+  });
+
+  /**
+   * Traverses the entries that belong to an entry's family.  This includes the
+   * entry itself.
    * 
    * @param {SortableEntry} entry
    * @param {Set<SortableEntry>} [visited]
@@ -109,7 +145,7 @@ exports.sortingHelpers = (theEntries) => {
   };
 
   /**
-   * Gets a set of keys that each represent the terminal key of a relation chain.
+   * Gets a set of keys that each represent a terminal key in a relation chain.
    * The entry itself may be its own terminal.
    * 
    * @type {(entry: SortableEntry) => Set<string>}
@@ -125,24 +161,29 @@ exports.sortingHelpers = (theEntries) => {
       // in the list of known keys, we will count this as terminal.
       for (const relEntry of traverseRelatives(entry)) {
         // This should never happen, but it makes TS happy.
-        if (!relEntry.key) continue;
+        if (!relEntry.keys) continue;
 
         // Using a rarely used JS feature to keep this simpler: a labeled block.
         theChecks: {
+          const inclusiveRelations = getInclusiveRelations(relEntry);
           // If this is not related at all, its terminal.
-          if (!relEntry.relations?.length) break theChecks;
+          if (!inclusiveRelations.length) break theChecks;
           // If some relation is an unknown key, it's terminal.
-          const includedRelations = getIncludedRelations(relEntry);
-          if (includedRelations.length < relEntry.relations.length) break theChecks;
+          const matchedRelations = getMatchedRelations(relEntry);
+          if (matchedRelations.length < inclusiveRelations.length) break theChecks;
           // If no other relation exists that has no tie to `entry` or `relEntry`, it's terminal.
-          const culledRelations = includedRelations.filter((k) => k !== entry.key && k !== relEntry.key);
+          const culledRelations = matchedRelations.filter((k) => {
+            const selfHas = Boolean(entry.keys?.has(k));
+            if (entry === relEntry) return selfHas;
+            return selfHas && Boolean(relEntry.keys?.has(k));
+          });
           if (culledRelations.length === 0) break theChecks;
           // Otherwise, it is not terminal.
           continue;
         }
 
         // If we break out of `theChecks`, we have a terminal entry.
-        yield relEntry.key;
+        yield* relEntry.keys;
       }
     };
 
@@ -158,13 +199,15 @@ exports.sortingHelpers = (theEntries) => {
    * @returns {string | null}
    */
   const getPriorityKey = (entry) => {
-    if (entry.key && keyToPriority.has(entry.key)) return entry.key;
+    if (entry.keys)
+      for (const key of entry.keys)
+        if (keyToPriority.has(key)) return key;
 
     // If this entry is normally associated with multiple relations, but only one
     // of those relations was actually selected, we'll group them up.
-    const includedRelations = getIncludedRelations(entry);
-    if (includedRelations.length === 1) {
-      const [theKey] = includedRelations;
+    const matchedRelations = getMatchedRelations(entry);
+    if (matchedRelations.length === 1) {
+      const [theKey] = matchedRelations;
       if (keyToPriority.has(theKey)) return theKey;
     }
     return null;
@@ -192,7 +235,7 @@ exports.sortingHelpers = (theEntries) => {
   const isDirectlyRelated = dew(() => {
     // @ts-ignore - Going without types here.
     const _impl = memoize((a) => memoize((b) => {
-      return Boolean(b.key && a.relations?.includes(b.key));
+      return Boolean(b.key && getMatchedRelations(a).includes(b.key));
     }));
     return (a, b) => _impl(a)(b);
   });
@@ -221,7 +264,7 @@ exports.sortingHelpers = (theEntries) => {
    */
   const isDescendent = (entry, maybeRelated) => {
     // If two entries share a key, they can't be descendents.
-    if (entry.key && entry.key === maybeRelated.key) return false;
+    if (haveSharedKeys(entry, maybeRelated)) return false;
     return isIndirectlyRelated(entry, maybeRelated);
   };
 
@@ -236,12 +279,13 @@ exports.sortingHelpers = (theEntries) => {
    * @returns {boolean}
    */
   const isFamily = (entry, maybeFamily) => {
-    if (entry.key && entry.key === maybeFamily.key) return true;
+    if (haveSharedKeys(entry, maybeFamily)) return true;
     return isIndirectlyRelated(entry, maybeFamily);
   };
 
   return {
-    getIncludedRelations,
+    haveSharedKeys,
+    getMatchedRelations,
     traverseRelatives,
     getRootKeys,
     getPriorityKey,
@@ -315,7 +359,7 @@ exports.buildSorter = (helpers) => {
    */
   const sortScore = (a, b) => {
     const [lScore = 0, rScore = 0]
-      = a.key && a.key === b.key ? [a.score, b.score]
+      = helpers.haveSharedKeys(a, b) ? [a.score, b.score]
       : [b.score, a.score];
     return lScore > rScore ? 1 : 0;
   };
@@ -357,9 +401,11 @@ exports.buildGrouper = (orderedEntries, helpers) => {
   for (let i = 0, lim = orderedEntries.length; i < lim; i++) {
     const entry = orderedEntries[i];
     entryToPosition.set(entry, i);
-    if (!entry.key) continue;
-    if (firstKeys.has(entry.key)) continue;
-    firstKeys.set(entry.key, i);
+    if (!entry.keys) continue;
+    for (const key of entry.keys) {
+      if (firstKeys.has(key)) continue;
+      firstKeys.set(key, i);
+    }
   }
 
   /**

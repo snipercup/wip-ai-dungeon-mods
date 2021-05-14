@@ -2,6 +2,6 @@ interface AnnotatedEntry {
   text: string;
   priority: number | null;
   score: number;
-  key?: string | null;
-  relations?: string[];
+  keys?: Set<string>;
+  relations?: AnyRelationDef[];
 }

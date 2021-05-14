@@ -6,10 +6,7 @@ const { tuple2, chain, toPairs } = require("../../utils");
  */
 const entryForModifier = (entry) => ({
   ...entry.toJSON(),
-  // Clone the current state of the sets.
-  relations: new Set(entry.relations),
-  include: new Set(entry.include),
-  exclude: new Set(entry.exclude)
+  keys: new Set(entry.keys)
 });
 
 /**

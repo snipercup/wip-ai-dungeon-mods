@@ -23,12 +23,17 @@ const { EngineEntryForWorldInfo } = require("./EngineEntryForWorldInfo");
      */
     parse(worldInfo) {
       const { keys } = worldInfo;
+      /** @type {AnyKeywordDef[]} */
+      const keywords = keys
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map((value) => ({ type: "include", exactMatch: false, value }));
       return {
-        key: null,
+        keys: [],
         type: "VanillaEntry",
         relations: [],
-        include: keys.split(",").map(s => s.trim()).filter(Boolean),
-        exclude: []
+        keywords
       };
     }
   }

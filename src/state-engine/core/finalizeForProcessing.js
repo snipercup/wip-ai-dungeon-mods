@@ -2,6 +2,19 @@ const { escapeRegExp } = require("../../utils");
 const { entryCount } = require("../config");
 
 /**
+ * @param {StateEngineEntry} source
+ * @param {StateEngineEntry} target
+ */
+const countOfUniqueKeys = (source, target) => {
+  if (source.keys.size === 0) return 0;
+
+  let count = 0;
+  for (const srcKey of source.keys)
+    if (!target.keys.has(srcKey)) count += 1;
+  return count;
+};
+
+/**
  * Sorts `StateEngineData`.  Data with relations to other data are sorted toward
  * the end, so they are evaluated last and will be able to look up if the related
  * data was matched.
@@ -10,18 +23,19 @@ const { entryCount } = require("../config");
  * @param {StateEngineEntry} b 
  */
 const stateSorter = (a, b) => {
-  // When one has a key and the other doesn't, sort the key'd one later.
-  const aHasKey = Boolean(a.key);
-  if (aHasKey !== Boolean(b.key)) return aHasKey ? 1 : -1;
-
-  // When one has more references, sort that one later.
-  const refCount = a.relations.size - b.relations.size;
-  if (refCount !== 0) return refCount;
-
   // When one references the other, sort the one doing the referencing later.
   // It is possible that they reference each other; this is undefined behavior.
-  if (b.key && a.relations.has(b.key)) return 1;
-  if (a.key && b.relations.has(a.key)) return -1;
+  if (a.relator.isInterestedIn(b.keys)) return 1;
+  if (b.relator.isInterestedIn(a.keys)) return -1;
+
+  // When one has more relations, sort that one later.
+  const relCount = a.relator.keysOfInterest.size - b.relator.keysOfInterest.size;
+  if (relCount !== 0) return relCount;
+
+  // Compare the keys, sorting the entry with more unique keys down.
+  const aCount = countOfUniqueKeys(a, b);
+  const bCount = countOfUniqueKeys(b, a);
+  if (aCount !== bCount) return aCount - bCount;
 
   return 0;
 };

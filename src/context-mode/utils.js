@@ -52,6 +52,8 @@ exports.getStateEngineData = (aidData, assocData) => {
   // Can we find this entry's cached data?
   const stateData = $$stateDataCache[assocData.entryId];
   if (!stateData) return undefined;
+  const { keys: keysArr, ...restData } = stateData;
+  const keys = new Set(keysArr);
 
   // And locate some text for the entry?
   const text = dew(() => {
@@ -68,7 +70,7 @@ exports.getStateEngineData = (aidData, assocData) => {
   if (!text) return undefined;
 
   const { score, priority, source } = assocData;
-  return { ...stateData, score, priority, source, text };
+  return { ...restData, keys, score, priority, source, text };
 };
 
 /**

@@ -60,15 +60,13 @@ exports.worldInfoString = (worldInfo, withExcerpt = false) => {
  * @param {Object} parts
  * @param {string} parts.type
  * @param {string} parts.entryId
- * @param {Iterable<string>} parts.relations
- * @param {string | null} [parts.key]
+ * @param {string[]} [parts.keys]
  * @param {string} [parts.entryText]
  * @returns {string}
  */
 exports.stateDataString = (parts) => {
-  const { type, key, relations, entryId, entryText } = parts;
-  const relPart = [...relations].filter((str) => str !== key).join(" & ");
-  const keyPart = [key, relPart].filter(Boolean).join(": ");
+  const { type, keys, entryId, entryText } = parts;
+  const keyPart = keys?.filter(Boolean).join(" & ");
   const typePart = keyPart ? `$${type}[${keyPart}]` : `$${type}`;
   const result = `StateEntry#${entryId}<${typePart}>`;
   if (!entryText) return result;

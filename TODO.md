@@ -1,22 +1,5 @@
 # TODO
 
-## Kinds and Relations Refactor
-Alter the syntax so that `$Type[B: A]` implies a kind, "B is a kind of A".  All
-this really does is so that if something relates to an `A`, then a `B` can match.
-Or, an entry now has a `keys` property rather than a single `key`.
-
-Relations will be moved into the match section, in parenthesis, `$Type(:A, keyword)`.
-There are a few prefixes that can be used:
-
-`:` - An "all of" relation.  All relations prefixed with a `:` must match.
-`?` - An "at least one" relation.  The relation is optional, but if no other
-      relation of type `:` or `?` matches, then no match happens.
-`!` - A "not ever" relation.  Similar to negated keywords, if this relation
-      finds a match, the entry cannot match.
-
-Additionally, add in exact-match keywords.  These are just in double-quotes, such
-as `"chu"`, and can be altered with modifiers, like `-"chu"`.
-
 ## Total Recall
 A dynamic State Engine entry that back-references something in the history.  This
 is a feature of the vanilla context.  Might be cool to see what could be done with

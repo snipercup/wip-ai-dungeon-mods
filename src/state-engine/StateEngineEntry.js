@@ -1,14 +1,78 @@
 const { entryCount } = require("./config");
 const { dew, tuple2, getText } = require("../utils");
 const { isParamsFor, isParamsTextable, stateDataString } = require("./utils");
-const { MatchableEntry } = require("./MatchableEntry");
 
-/** Common regular expressions for parsing state entry definitions. */
-exports.regex = {
-  /** Matches keywords intended for inclusion matching; accepts an optional leading "+". */
-  includedKeyword: /^\+?([\w ]+)$/,
-  /** Matches keywords intended for exclusion matching; requires a leading "-". */
-  excludedKeyword: /^-([\w ]+)$/
+/**
+ * @param {any} value
+ * @param {string} type
+ * @returns {boolean}
+ */
+const hasTypeOf = (value, type) => "type" in value && value.type === type;
+const relationTypes = new Set(["allOf", "atLeastOne", "negated"]);
+
+/** @type {(value: AnyMatcherDef) => value is KeywordDef<"include">} */
+exports.isInclusiveKeyword = (value) => hasTypeOf(value, "include");
+/** @type {(value: AnyMatcherDef) => value is KeywordDef<"exclude">} */
+exports.isExclusiveKeyword = (value) => hasTypeOf(value, "exclude");
+/** @type {(value: AnyMatcherDef) => value is AnyKeywordDef} */
+exports.isKeyword = (value) => exports.isInclusiveKeyword(value) || exports.isExclusiveKeyword(value);
+/** @type {(value: AnyMatcherDef) => value is AnyRelationDef} */
+exports.isRelation = (value) => "type" in value && relationTypes.has(value.type);
+/** @type {<TType extends RelationTypes>(value: AnyMatcherDef, type: TType) => value is RelationDef<TType>} */
+exports.isRelationOfType = (value, type) => hasTypeOf(value, type);
+
+const reExactMatch = /^"([\w ]+)"$/;
+const reInclusiveKeyword = /^\+?(["\w ]+)$/;
+const reExclusiveKeyword = /^-(["\w ]+)$/;
+const reRelation = /^([:!?])([\w]+)$/;
+
+/** Common parsers for parsing state entry definitions. */
+exports.parsers = {
+  /**
+   * Matches keywords intended for inclusion matching; accepts an optional prefixed "+".
+   * 
+   * @type {PatternMatcher<KeywordDef<"include">>}
+   */
+  includedKeyword: (text) => {
+    if (!text) return undefined;
+    const kwMatch = reInclusiveKeyword.exec(text);
+    if (!kwMatch) return undefined;
+    const exMatch = reExactMatch.exec(kwMatch[1]);
+    if (exMatch) return { type: "include", exactMatch: true, value: exMatch[1] };
+    return { type: "include", exactMatch: false, value: kwMatch[1] };
+  },
+  /**
+   * Matches keywords intended for exclusion matching; requires a prefixed "-".
+   * 
+   * @type {PatternMatcher<KeywordDef<"exclude">>}
+   */
+  excludedKeyword: (text) => {
+    if (!text) return undefined;
+    const kwMatch = reExclusiveKeyword.exec(text);
+    if (!kwMatch) return undefined;
+    const exMatch = reExactMatch.exec(kwMatch[1]);
+    if (exMatch) return { type: "exclude", exactMatch: true, value: exMatch[1] };
+    return { type: "exclude", exactMatch: false, value: kwMatch[1] };
+  },
+  /**
+   * Matches the relation patterns.  Requires a special prefix:
+   * - `:` - An "all of" relation.
+   * - `?` - An "at least one" relation.
+   * - `!` - A "negated" relation.
+   * 
+   * @type {PatternMatcher<AnyRelationDef>}
+   */
+  relation: (text) => {
+    if (!text) return undefined;
+    const match = reRelation.exec(text);
+    if (!match) return undefined;
+    const [, typePart, key] = match;
+    switch (typePart) {
+      case ":": return { type: "allOf", key };
+      case "?": return { type: "atLeastOne", key };
+      case "!": return { type: "negated", key }
+    }
+  }
 };
 
 /**
@@ -81,20 +145,20 @@ class BadStateEntryError extends Error {
 class InvalidTypeError extends BadStateEntryError {}
 
 class StateEngineEntry {
-  /**
-   * @param {string} entryId
-   * @param {string | null} [entryKey]
-   * @param {Object} [matchingOpts]
-   * @param {string[]} [matchingOpts.relations]
-   * @param {string[]} [matchingOpts.include]
-   * @param {string[]} [matchingOpts.exclude]
-   */
-  constructor(entryId, entryKey, matchingOpts) {
-    this.entryId = entryId;
-    this.key = entryKey ?? null;
-    this.relations = new Set(matchingOpts?.relations);
-    this.include = new Set(matchingOpts?.include);
-    this.exclude = new Set(matchingOpts?.exclude);
+
+  constructor() {
+    /** The entry's ID. */
+    this.entryId = "";
+    /** @type {Set<string>} All keys assigned to the entry. */
+    this.keys = new Set();
+    /** @type {AnyRelationDef[]} The entry's relations to other keys. */
+    this.relations = [];
+    /** @type {AnyKeywordDef[]} The entry's keywords, for text matching. */
+    this.keywords = [];
+    /** A helper for checking relations against keys in the `UsedEntryMap`. */
+    this.relator = require("./RelatableEntry").nilRelatableEntry;
+    /** @type {Map<AssociationSources, number>} Storage for relations found per source. */
+    this.relationCounts = new Map();
   }
 
   /**
@@ -112,7 +176,7 @@ class StateEngineEntry {
   }
 
   /**
-   * Given the `AIDData` object, returns an interable of `StateEngineEntry`
+   * Given the `AIDData` object, returns an iterable of `StateEngineEntry`
    * instances that could be built for this class.
    * 
    * Must be overridden by child classes.
@@ -168,6 +232,26 @@ class StateEngineEntry {
    */
   get priority() {
     return undefined;
+  }
+
+  /**
+   * Handles deferred initialization of the class.
+   * 
+   * @param {string} entryId
+   * @param {string[]} [keys]
+   * @param {Object} [matchingOpts]
+   * @param {AnyRelationDef[]} [matchingOpts.relations]
+   * @param {AnyKeywordDef[]} [matchingOpts.keywords]
+   * @returns {this}
+   */
+  init(entryId, keys, matchingOpts) {
+    const { RelatableEntry } = require("./RelatableEntry");
+    this.entryId = entryId;
+    this.keys = new Set(keys ?? []);
+    this.relations = matchingOpts?.relations ?? [];
+    this.keywords = matchingOpts?.keywords ?? [];
+    this.relator = new RelatableEntry(this.relations);
+    return this;
   }
 
   /**
@@ -257,6 +341,7 @@ class StateEngineEntry {
     // If this source has no text, we fail the match.
     if (!isParamsTextable(params)) return false;
     
+    // @ts-ignore - Not sure why this isn't being narrowed.  TS dumb as shit.
     const text = getText(params.entry).trim();
     if (!text) return false;
     if (matcher.hasExcludedWords(text)) return false;
@@ -282,10 +367,11 @@ class StateEngineEntry {
     if (!isParamsFor("history", params)) return true;
     const { source, usedKeys } = params;
 
-    if (this.relations.size === 0) return true;
+    if (this.relations.length === 0) return true;
     const allUsedKeys = new Set(exports.iterUsedKeys(usedKeys, source));
-    for (const key of this.relations)
-      if (!allUsedKeys.has(key)) return false;
+    const result = this.relator.check(allUsedKeys);
+    if (result === false) return false;
+    this.relationCounts.set(source, result);
     return true;
   }
 
@@ -297,12 +383,12 @@ class StateEngineEntry {
    * @returns {void}
    */
   recordKeyUsage(params) {
-    if (!this.key) return;
+    if (this.keys.size === 0) return;
     if (!isParamsFor("history", params)) return;
 
     const { source, usedKeys } = params;
     const theKeys = usedKeys.get(source) ?? new Set();
-    theKeys.add(this.key);
+    for (const key of this.keys) theKeys.add(key);
     usedKeys.set(source, theKeys);
   }
 
@@ -356,8 +442,8 @@ class StateEngineEntry {
     if (baseScalar === 0) return 0;
 
     const text = getText(entry);
-    const inclusiveCount = this.include.size;
-    const exclusiveCount = this.exclude.size;
+    const inclusiveCount = matcher.include.length;
+    const exclusiveCount = matcher.exclude.length;
     const penaltyRatio = tuple2(1, text && exclusiveCount > 0 ? 1 : 2);
 
     const [totalMatched, uniqueMatched] = dew(() => {
@@ -371,7 +457,7 @@ class StateEngineEntry {
 
     const keywordScalar = 10 * Math.pow(1.1, exclusiveCount);
     const keywordPart = totalMatched / uniqueMatched;
-    const relationsPart = this.relations.size + 1;
+    const relationsPart = (this.relationCounts.get(source) ?? 0) + 1;
 
     return baseScalar * keywordPart * keywordScalar * relationsPart;
   }
@@ -421,6 +507,7 @@ class StateEngineEntry {
    * @returns {MatchableEntry}
    */
   toMatchable(matchCounter) {
+    const { MatchableEntry } = require("./MatchableEntry");
     return new MatchableEntry(this, matchCounter);
   }
 
@@ -431,9 +518,10 @@ class StateEngineEntry {
    * @returns {string}
    */
   toString(withExcerpt) {
-    const { type, entryId, relations, key, text: entryText } = this;
-    if (!withExcerpt) return stateDataString({ type, entryId, relations, key });
-    return stateDataString({ type, entryId, relations, key, entryText });
+    const { type, entryId, text: entryText } = this;
+    const keys = [...this.keys];
+    if (!withExcerpt) return stateDataString({ type, entryId, keys });
+    return stateDataString({ type, entryId, keys, entryText });
   }
 
   /**
@@ -442,11 +530,11 @@ class StateEngineEntry {
    * @returns {StateEngineData}
    */
   toJSON() {
-    const { type, entryId, key } = this;
+    const { type, entryId } = this;
+    const keys = [...this.keys];
     const relations = [...this.relations];
-    const include = [...this.include];
-    const exclude = [...this.exclude];
-    return { type, entryId, key, relations, include, exclude };
+    const keywords = [...this.keywords];
+    return { type, entryId, keys, relations, keywords };
   }
 }
 

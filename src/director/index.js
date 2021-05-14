@@ -3,7 +3,6 @@
 const { tuple } = require("../utils");
 const { isParamsFor } = require("../state-engine/utils");
 const { addStateEntry } = require("../state-engine/registry");
-const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
 
 /**
  * Does some global setup for this module.
@@ -11,6 +10,9 @@ const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorld
  * @type {BundledModifierFn}
  */
  const init = (data) => {
+  const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
+  const { RelatableEntry } = require("../state-engine/RelatableEntry");
+
   /**
    * When this state matches any history entry, it will provide text for the
    * Author's Note.  Use it to give direction to the AI when certain moods,
@@ -41,17 +43,28 @@ const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorld
     static get forType() { return "Direction"; }
     get targetSources() { return tuple("authorsNote", "history"); }
 
+    validator() {
+      const issues = super.validator();
+      if (this.keys.size > 1)
+        issues.push(`World info entry \`${this.infoKey}\` can have, at most, one key.`);
+      return issues;
+    }
+
     /**
      * @param {Map<string, StateDataForModifier>} allStates
      * @returns {void}
      */
     modifier(allStates) {
-      // If we have a key and no relations, and some state exists that shares
+      // If we have a single key and no relations, and some state exists that shares
       // the key, use the key as a relation implicitly.
-      if (!this.key || this.relations.size > 0) return;
+      if (this.keys.size !== 1 || this.relations.length > 0) return;
+      const [mainKey] = this.keys;
       for (const [, state] of allStates) {
-        if (state.key !== this.key) continue;
-        this.relations.add(this.key);
+        if (state.type === this.type) continue;
+        if (!state.keys.has(mainKey)) continue;
+        this.relations.push({ type: "allOf", key: mainKey });
+        // Don't forget to set a new relator!
+        this.relator = new RelatableEntry(this.relations);
         return;
       }
     }

@@ -13,6 +13,27 @@ interface StateEngineEntryClass {
   produceEntries: (typeof import("./StateEngineEntry").StateEngineEntry)["produceEntries"];
 }
 
+interface PatternMatcher<T> {
+  (text: Maybe<string>): T | undefined;
+}
+
+type KeywordTypes = "include" | "exclude";
+interface KeywordDef<TType extends KeywordTypes> {
+  type: TType;
+  exactMatch: boolean;
+  value: string;
+}
+
+type RelationTypes = "allOf" | "atLeastOne" | "negated";
+interface RelationDef<TType extends RelationTypes> {
+  type: TType;
+  key: string;
+}
+
+type AnyKeywordDef = KeywordDef<KeywordTypes>;
+type AnyRelationDef = RelationDef<RelationTypes>;
+type AnyMatcherDef = AnyKeywordDef | AnyRelationDef;
+
 interface StateEngineData {
   /**
    * The key of this entry.  Common types:
@@ -32,24 +53,19 @@ interface StateEngineData {
    */
   text?: string;
   /**
-   * An user-given identifier.  Will be `null` if it was not given one or is otherwise
-   * not applicable to the `type`.
+   * A list of user-given identifiers.  Will be empty if it was not given one or is
+   * otherwise not applicable to the `type`.  The first element is typically treated
+   * like a name for the instance.
    */
-  key: string | null;
+  keys: string[];
   /**
-   * An array of types, referencing other entries.
-   * These must match for this entry to match.
+   * An array of relation configuration objects.
    */
-  relations: string[];
+  relations: AnyRelationDef[];
   /**
-   * Keywords that, when found in the text, will cause this entry to match.
+   * An array of keyword configuration objects.
    */
-  include: string[];
-  /**
-   * Keywords that, when found in the text, will prevent this entry from
-   * matching, even if an entry from `include` matches.
-   */
-  exclude: string[];
+  keywords: AnyKeywordDef[];
 }
 
 interface EngineDataForWorldInfo extends StateEngineData {
@@ -65,9 +81,7 @@ interface EngineDataForWorldInfo extends StateEngineData {
 }
 
 interface StateDataForModifier extends StateEngineData {
-  relations: Set<string>;
-  include: Set<string>;
-  exclude: Set<string>;
+  keys: Set<string>;
 }
 
 type StateAssociations = Map<AssociationSources, Set<StateEngineEntry["entryId"]>>;
@@ -189,7 +203,7 @@ interface StateDataCache {
 /** A generic interface for sortable things. */
 interface SortableEntry {
   text?: string;
-  key?: StateEngineData["key"];
+  keys?: Set<string>;
   relations?: StateEngineData["relations"];
   priority?: StateEngineCacheData["priority"];
   score?: StateEngineCacheData["score"];

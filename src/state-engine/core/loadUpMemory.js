@@ -2,6 +2,8 @@ const { chain, getText } = require("../../utils");
 const { entrySorter } = require("../entrySorting");
 const { entrySelector } = require("../entrySelection");
 
+/** @typedef {Required<Pick<SortableEntry, "text" | "keys" | "relations">>} SortingParts */
+
 /**
  * Yields lines from the player memory, ignoring lines starting with a `#` symbol.
  * Currently, they just jam the summary into the player-defined memory with a comment
@@ -26,18 +28,18 @@ const convertPlayerMemory = function* (playerMemory) {
  * If With-Memory is running, the extracted summary.
  * @param {StateDataCache} cacheData
  * The current-turn State Engine cache data.
- * @param {(id: string) => string} getEntryText
+ * @param {(id: string) => SortingParts} getEntryData
  * Function that obtains an entry's text.
  * @returns {string}
  */
-const produceContextMemory = (playerMemory, summary, cacheData, getEntryText) => {
+const produceContextMemory = (playerMemory, summary, cacheData, getEntryData) => {
   const forContext = cacheData?.forContextMemory ?? [];
   const forHistory = cacheData?.forHistory ? Object.values(cacheData.forHistory) : [];
   const resolvedSummary = summary ?? "";
 
   return chain()
     .concat(forContext, forHistory)
-    .map((entry) => ({ ...entry, text: getEntryText(entry.entryId)}))
+    .map((entry) => ({ ...entry, ...getEntryData(entry.entryId)}))
     .concat(convertPlayerMemory(playerMemory))
     .thru(entrySorter)
     .thru((notes) => entrySelector(notes, 1001 - resolvedSummary.length, {
@@ -69,7 +71,14 @@ module.exports = (data) => {
 
   const newContextMem = produceContextMemory(
     playerMemory, summary, cacheData,
-    (id) => getText(ctx.entriesMap[id])
+    (id) => {
+      const entry = ctx.entriesMap[id];
+      return {
+        text: getText(entry),
+        keys: entry.keys,
+        relations: entry.relations.filter((relDef) => relDef.type !== "negated")
+      };
+    }
   );
   if (newContextMem) memory.context = newContextMem;
   

@@ -1,10 +1,14 @@
-const { dew } = require("../utils");
+const { chain, partition, fromPairs, tuple } = require("../utils");
 const { worldInfoString } = require("./utils");
 const { StateEngineEntry, BadStateEntryError, InvalidTypeError } = require("./StateEngineEntry");
-const { parseKeywords, regex: baseRegex } = require("./StateEngineEntry");
+const { isRelation, parsers: baseParsers } = require("./StateEngineEntry");
 
-exports.regex = {
-  ...baseRegex,
+const reInfoEntry = /^\$(\w+?)((?:\[|\().*)?$/;
+const reInfoDeclaration = /^(?:\[(.*?)\])?(\(.+?\))?$/;
+const reInfoKeywords = /^\((.*)?\)$/;
+
+exports.parsers = {
+  ...baseParsers,
   /**
    * Parses an info entry into its type and the info declaration:
    * - "$Location" => `["Location", undefined]`
@@ -13,38 +17,69 @@ exports.regex = {
    * - "$Lore[Temple: Ike & Marth]" => `["Lore", "[Temple: Ike & Marth]"]`
    * - "$Lore[Temple](temple; ancient)" => `["Lore", "[Temple](temple; ancient)"]`
    * - "$State(weapon; sword)" => `["State", "(weapon; sword)"]`
-   */
-  infoEntry: /^\$(\w+?)((?:\[|\().*)?$/,
-  /**
-   * Parses an info declaration into its full-key and keyword parts:
-   * - "[Ike]" => `["Ike", undefined]`
-   * - "[Temple]" => `["Temple", undefined]`
-   * - "[Temple: Ike & Marth]" => `["Temple: Ike & Marth", undefined]`
-   * - "[Temple](temple; ancient)" => `["Temple", "temple; ancient"]`
-   * - "(weapon; sword)" => `[undefined, "weapon; sword"]`
-   */
-  infoDeclaration: /^(?:\[(.*?)\])?(?:\((.+?)\))?$/,
-  /**
-   * Parses a full-key into its key and its related-keys parts:
-   * - "Ike" => `["Ike", undefined]`
-   * - "Temple" => `["Temple", undefined]`
-   * - "Temple: Ike & Marth" => `["Temple", "Ike & Marth"]`
-   */
-  infoFullKey: /^(\w+?)(?::\s*?(.*))?$/,
-  /**
-   * Parses a relation set, only.  It must contain `&`.
-   * - "Ike & Marth" => `[undefined, "Ike & Marth"]`
-   * - "Ike & Marth & Lucina" => `[undefined, "Ike & Marth & Lucina"]`
    * 
-   * Used as a fallback if `infoFullKey` fails to match anything.
+   * @type {PatternMatcher<[type: string, decPart: string | undefined]>}
    */
-  infoRelOnly: /^()((?:\w+(?: *& *)?)*)$/,
+  infoEntry: (text) => {
+    if (!text) return undefined;
+    const matched = reInfoEntry.exec(text);
+    if (!matched) return undefined;
+    const [, type, decPart] = matched;
+    return [type, decPart];
+  },
+  /**
+   * Parses an info declaration into its separated keys and matcher part:
+   * - "" => `[[], undefined]`
+   * - "[]" => `[[], undefined]`
+   * - "[Ike]" => `[["Ike"], undefined]`
+   * - "[Ike & Hero]" => `[["Ike", "Hero"], undefined]`
+   * - "[GoddessHall](:Temple; goddess)" => `[["GoddessHall"], "(:Temple; goddess)"]`
+   * - "(:Temple; goddess)" => `[[], "(:Temple; goddess)"]`
+   * 
+   * @type {PatternMatcher<[keys: string[], matchersPart: string | undefined]>}
+   */
+  infoDeclaration: (decPart) => {
+    // We do allow empty/missing 
+    if (!decPart) return [[], undefined];
+    const matched = reInfoDeclaration.exec(decPart);
+    if (!matched) return undefined;
+    const [, keysPart, matchersPart] = matched;
+    const keys = !keysPart ? [] : keysPart.split("&").map((k) => k.trim());
+    // We'll fail if any key is empty, IE the user provided `" & Something"`.
+    if (keys.some((key) => !key)) return undefined;
+    return [keys, matchersPart];
+  },
   /**
    * Parses a keyword part:
-   * - "()" => `[undefined]`
-   * - "(temple; ancient)" => `["temple; ancient"]`
+   * - undefined => `[]`
+   * - "" => `[]`
+   * - "()" => `[]`
+   * - "(:GoddessHall; temple; -ancient)" => `[ParsedRelation, ParsedKeyword, ParsedKeyword]`
+   * 
+   * @type {PatternMatcher<AnyMatcherDef[]>}
    */
-  infoKeywords: /^\((.*)?\)$/
+  infoMatchers: (matchersPart) => {
+    // Allow `""` and `undefined` to count as a successful match. 
+    if (!matchersPart) return [];
+    // But if we must parse, and it fails, its a failure.
+    const matched = reInfoKeywords.exec(matchersPart);
+    if (!matched) return undefined;
+    const [, matchersHunk] = matched;
+    const matcherFrags = matchersHunk.split(";").map((frag) => frag.trim()).filter(Boolean);
+    if (matcherFrags.length === 0) return [];
+
+    /** @type {Array<AnyMatcherDef>} */
+    const matchers = [];
+    for (const matcherFrag of matcherFrags) {
+      const matched
+        = baseParsers.relation(matcherFrag)
+        ?? baseParsers.includedKeyword(matcherFrag)
+        ?? baseParsers.excludedKeyword(matcherFrag);
+      if (!matched) return undefined;
+      matchers.push(matched);
+    }
+    return matchers;
+  }
 };
 
 /**
@@ -54,8 +89,7 @@ exports.regex = {
  * @returns {string | undefined}
  */
 exports.extractType = (worldInfo) => {
-  // @ts-ignore - TS too dumb with `??` and `[]`.
-  const [, type] = exports.regex.infoEntry.exec(worldInfo.keys) ?? [];
+  const [type] = exports.parsers.infoEntry(worldInfo.keys) ?? [];
   return type;
 };
 
@@ -67,27 +101,27 @@ exports.extractType = (worldInfo) => {
  */
  exports.infoKeyParserImpl = (infoKey) => {
   const {
-    infoEntry, infoDeclaration, infoFullKey, infoRelOnly,
-    includedKeyword, excludedKeyword
-  } = exports.regex;
+    infoEntry, infoDeclaration, infoMatchers
+  } = exports.parsers;
 
-  const [, type, dec] = infoEntry.exec(infoKey) ?? [];
-  if (!type) return undefined;
+  const matchedEntry = infoEntry(infoKey);
+  if (!matchedEntry) return undefined;
+  const [type, decPart] = matchedEntry;
 
-  const [, fullKey, keywordPart] = infoDeclaration.exec(dec) ?? [];
-  // Full-key part parsing.
-  // @ts-ignore - TS too dumb with `??` and `[]`.
-  const [, key = null, relationPart] = dew(() => {
-    if (!fullKey) return [];
-    return infoFullKey.exec(fullKey) ?? infoRelOnly.exec(fullKey) ?? [];
-  });
-  const relations = relationPart?.split("&").map(s => s.trim()).filter(Boolean) ?? [];
-  // Keyword part parsing.
-  const keywords = keywordPart?.split(";").map(s => s.trim()).filter(Boolean) ?? [];
-  const include = parseKeywords(keywords, includedKeyword);
-  const exclude = parseKeywords(keywords, excludedKeyword);
+  const matchedDec = infoDeclaration(decPart);
+  if (!matchedDec) return undefined;
+  const [keys, keywordsPart] = matchedDec;
+  const matchers = infoMatchers(keywordsPart);
+  if (!matchers) return undefined;
 
-  return { type, key, relations, include, exclude };
+  // @ts-ignore - TS is stupid with defaults in destructuring.
+  // It's still typing correctly, though.
+  const { relations = [], keywords = [] } = chain(matchers)
+    .map((matcher) => isRelation(matcher) ? tuple("relations", matcher) : tuple("keywords", matcher))
+    .thru((kvps) => partition(kvps))
+    .value((kvps) => fromPairs(kvps));
+
+  return { type, keys, relations, keywords };
 };
 
 class EngineEntryForWorldInfo extends StateEngineEntry {
@@ -95,14 +129,10 @@ class EngineEntryForWorldInfo extends StateEngineEntry {
    * @param {WorldInfoEntry} worldInfo
    */
   constructor(worldInfo) {
-    super(worldInfo.id)
-    this.worldInfo = worldInfo;
+    super();
     const parsedResult = this.parse(worldInfo);
-
-    this.key = parsedResult.key;
-    this.relations = new Set(parsedResult.relations);
-    this.include = new Set(parsedResult.include);
-    this.exclude = new Set(parsedResult.exclude);
+    this.init(worldInfo.id, parsedResult.keys, parsedResult);
+    this.worldInfo = worldInfo;
   }
 
   /**
@@ -113,9 +143,9 @@ class EngineEntryForWorldInfo extends StateEngineEntry {
   static *produceEntries(data, issuesMap) {
     for (const info of data.worldEntries) {
       try {
-      const type = exports.extractType(info);
-      if (!type || type !== this.forType) continue;
-      yield new this(info);
+        const type = exports.extractType(info);
+        if (!type || type !== this.forType) continue;
+        yield new this(info);
       }
       catch(err) {
         if (err instanceof InvalidTypeError) {
@@ -139,8 +169,22 @@ class EngineEntryForWorldInfo extends StateEngineEntry {
     }
   }
 
+  /**
+   * Shorthand accessor for `WorldInfoEntry.keys`.
+   * 
+   * @type {string}
+   */
   get infoKey() {
     return this.worldInfo.keys;
+  }
+
+  /**
+   * The associated text of this entry.
+   * 
+   * @type {string}
+   */
+   get text() {
+    return this.worldInfo.entry;
   }
 
   /**
@@ -172,15 +216,6 @@ class EngineEntryForWorldInfo extends StateEngineEntry {
       ].join(", "));
 
     return parsedResult;
-  }
-
-  /**
-   * The associated text of this entry.
-   * 
-   * @type {string}
-   */
-  get text() {
-    return this.worldInfo.entry;
   }
 
   /**

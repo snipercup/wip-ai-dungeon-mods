@@ -485,7 +485,7 @@ exports.escapeRegExp = (str) => {
  * @param {RegExp} regex
  * @returns {number}
  */
-exports.countOccurences = (str, regex) => {
+exports.countOccurrences = (str, regex) => {
   return ((str || '').match(regex) || []).length;
 };
 

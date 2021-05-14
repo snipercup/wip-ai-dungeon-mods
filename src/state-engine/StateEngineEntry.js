@@ -449,9 +449,9 @@ class StateEngineEntry {
     const [totalMatched, uniqueMatched] = dew(() => {
       if (inclusiveCount === 0) return penaltyRatio;
       if (!text) return penaltyRatio;
-      const totalMatched = matcher.occurancesIn(text);
+      const totalMatched = matcher.occurrencesIn(text);
       if (totalMatched === 0) return penaltyRatio;
-      const uniqueMatched = matcher.uniqueOccurancesIn(text);
+      const uniqueMatched = matcher.uniqueOccurrencesIn(text);
       return [totalMatched, uniqueMatched];
     });
 

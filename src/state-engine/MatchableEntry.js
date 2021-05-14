@@ -1,6 +1,6 @@
 /// <reference path="./state-engine.d.ts" />
 const { chain, tuple, fromPairs, partition } = require("../utils");
-const { countOccurences, escapeRegExp } = require("../utils");
+const { countOccurrences, escapeRegExp } = require("../utils");
 const { isInclusiveKeyword, isExclusiveKeyword } = require("./StateEngineEntry");
 
 /** @typedef {import("../utils")[]} */
@@ -41,7 +41,7 @@ const memoizedCounter = () => {
     const storedCount = regexBin.get(str);
     if (typeof storedCount === "number") return storedCount;
 
-    const newCount = countOccurences(str, regex);
+    const newCount = countOccurrences(str, regex);
     regexBin.set(str, newCount);
     store.set(regexKey, regexBin);
     return newCount;
@@ -104,7 +104,7 @@ class MatchableEntry {
    * @param {"included" | "excluded"} mode
    * @returns {number}
    */
-  occurancesIn(textOrArr, mode = "included") {
+  occurrencesIn(textOrArr, mode = "included") {
     const keywords = mode === "included" ? this.include : this.exclude;
     if (keywords.length === 0 || !textOrArr) return 0;
     const textArr = typeof textOrArr === "string" ? [textOrArr] : textOrArr;
@@ -120,7 +120,7 @@ class MatchableEntry {
    * @param {"included" | "excluded"} mode
    * @returns {number}
    */
-  uniqueOccurancesIn(textOrArr, mode = "included") {
+  uniqueOccurrencesIn(textOrArr, mode = "included") {
     const keywords = mode === "included" ? this.include : this.exclude;
     if (keywords.length === 0 || !textOrArr) return 0;
     const textArr = typeof textOrArr === "string" ? [textOrArr] : textOrArr;

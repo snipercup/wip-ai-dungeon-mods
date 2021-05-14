@@ -75,9 +75,9 @@ class MatchableEntry {
     const { include = [], exclude = [] } = chain(stateEntry.keywords)
       .map((kw) => {
         if (isInclusiveKeyword(kw))
-          return tuple("include", new RegExp(keywordPattern(kw.value, kw.exactMatch), "i"));
+          return tuple("include", new RegExp(keywordPattern(kw.value, kw.exactMatch), "ig"));
         if (isExclusiveKeyword(kw))
-          return tuple("exclude", new RegExp(keywordPattern(kw.value, kw.exactMatch), "i"));
+          return tuple("exclude", new RegExp(keywordPattern(kw.value, kw.exactMatch), "ig"));
         throw new Error(`Unknown keyword type: ${kw.type}`);
       })
       .thru((kvps) => partition(kvps))

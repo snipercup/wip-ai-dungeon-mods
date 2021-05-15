@@ -245,8 +245,6 @@ const init = (data) => {
       const [chosenEntry] = duplicateEntries;
       this.keywords = [...chosenEntry.keywords];
       this.relations = [...chosenEntry.relations];
-      // Don't forget to set a new relator!
-      this.relator = new RelatableEntry(this.relations);
     }
 
     /**

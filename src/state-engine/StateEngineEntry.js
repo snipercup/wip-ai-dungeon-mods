@@ -135,6 +135,9 @@ class BadStateEntryError extends Error {
  */
 class InvalidTypeError extends BadStateEntryError {}
 
+// A symbol for a private backing field.
+const $$relations = Symbol("StateEngineEntry.relations");
+
 class StateEngineEntry {
 
   constructor() {
@@ -142,14 +145,15 @@ class StateEngineEntry {
     this.entryId = "";
     /** @type {Set<string>} All keys assigned to the entry. */
     this.keys = new Set();
-    /** @type {AnyRelationDef[]} The entry's relations to other keys. */
-    this.relations = [];
     /** @type {AnyKeywordDef[]} The entry's keywords, for text matching. */
     this.keywords = [];
     /** A helper for checking relations against keys in the `UsedEntryMap`. */
     this.relator = require("./RelatableEntry").nilRelatableEntry;
     /** @type {Map<AssociationSources, number>} Storage for relations found per source. */
     this.relationCounts = new Map();
+
+    /** @type {ReadonlyArray<AnyRelationDef>} Private backing field for `relations`. */
+    this[$$relations] = [];
   }
 
   /**
@@ -226,6 +230,23 @@ class StateEngineEntry {
   }
 
   /**
+   * The entry's relations to other keys.
+   * 
+   * Setting this value will automatically update `relator`.
+   * 
+   * @type {readonly AnyRelationDef[]}
+   */
+  get relations() {
+    return this[$$relations];
+  }
+  set relations(value) {
+    this[$$relations] = Object.isFrozen(value) ? value : Object.freeze([...value]);
+    // Update the relator with the new relations.
+    const { RelatableEntry, nilRelatableEntry } = require("./RelatableEntry");
+    this.relator = value.length === 0 ? nilRelatableEntry : new RelatableEntry(this.relations);
+  }
+
+  /**
    * Handles deferred initialization of the class.
    * 
    * @param {string} entryId
@@ -236,12 +257,10 @@ class StateEngineEntry {
    * @returns {this}
    */
   init(entryId, keys, matchingOpts) {
-    const { RelatableEntry } = require("./RelatableEntry");
     this.entryId = entryId;
     this.keys = new Set(keys ?? []);
     this.relations = matchingOpts?.relations ?? [];
     this.keywords = matchingOpts?.keywords ?? [];
-    this.relator = new RelatableEntry(this.relations);
     return this;
   }
 

@@ -1,6 +1,5 @@
 const { entryCount } = require("./config");
 const { chain, partition, fromPairs, tuple } = require("../utils");
-const { isRelationOfType } = require("./StateEngineEntry");
 
 /**
  * Iterates a `usedKeys` map across a range of entries.
@@ -28,9 +27,11 @@ exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
 
 class RelatableEntry {
   /**
-   * @param {AnyRelationDef[]} relations 
+   * @param {readonly AnyRelationDef[]} relations 
    */
   constructor(relations) {
+    const { isRelationOfType } = require("./StateEngineEntry");
+
     const relsByType = chain(relations)
       .map((relDef) => {
         if (isRelationOfType(relDef, "allOf"))

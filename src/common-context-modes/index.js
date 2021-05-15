@@ -75,9 +75,9 @@ const contextModifier = (config) => (data) => {
       .thru(entrySorter)
       .thru((notes) => entrySelector(
         notes,
-        // Have to account for the new lines for `styleLines` and `NOTES`.
+        // Have to account for the new lines for `styleLines` and `notesHeader`.
         // @ts-ignore - Not typing the `reduce` correctly.
-        maxMemory - [styleLength, NOTES].reduce(sumOfUsed(), 0),
+        maxMemory - [styleLength, config.notesHeader].reduce(sumOfUsed(), 0),
         { lengthGetter: ({ text }) => text.length + 1 }
       ))
       .map((note) => note.text.trim())
@@ -110,7 +110,7 @@ const contextModifier = (config) => (data) => {
         story,
         // Have to account for the new lines...
         // @ts-ignore - Not typing the `reduce` correctly.
-        maxChars - [notesLength, BREAK, summaryLength, styleLength].reduce(sumOfUsed(), 0),
+        maxChars - [notesLength, config.notesBreak, summaryLength, styleLength].reduce(sumOfUsed(), 0),
         {
           // Here we account for the new line separating each line of the story.
           lengthGetter: (text) => text ? text.length + 1 : 0

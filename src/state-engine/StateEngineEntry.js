@@ -7,7 +7,7 @@ const { isParamsFor, isParamsTextable, stateDataString } = require("./utils");
  * @returns {boolean}
  */
 const hasTypeOf = (value, type) => "type" in value && value.type === type;
-const relationTypes = new Set(["allOf", "atLeastOne", "negated"]);
+const relationTypes = new Set(["allOf", "atLeastOne", "immediate", "negated"]);
 
 /** @type {(value: AnyMatcherDef) => value is KeywordDef<"include">} */
 exports.isInclusiveKeyword = (value) => hasTypeOf(value, "include");

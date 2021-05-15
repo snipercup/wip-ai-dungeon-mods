@@ -90,22 +90,25 @@ class RelatableEntry {
     if (this.keysOfInterest.size === 0) return 0;
 
     const usedKeys = new Set(exports.iterUsedKeys(usedKeysMap, start, end));
-    let matchCount = this.checkKeys(usedKeys);
-    if (matchCount === false) return false;
+    
+    // Check negated relations.
+    if (!this.checkNegated(usedKeys)) return false;
+    
+    // Check at-least-one relations.
+    const atLeastOneCount = this.checkAtLeastOne(usedKeys);
+    if (atLeastOneCount === false) return false;
+
+    // Check all-of relations.
+    const allOfCount = this.checkAllOf(usedKeys);
+    if (allOfCount === false) return false;
 
     // Check immediate relations.
     // These relations only match the current history entry, which is assumed to be `start`.
-    if (this.immediate.length > 0) {
-      const immediateKeys = new Set([...exports.iterUsedKeys(usedKeysMap, start, start)]);
-      if (immediateKeys.size === 0) return false;
-
-      for (const relation of this.immediate)
-        if (!immediateKeys.has(relation.key)) return false;
-      matchCount += this.immediate.length;
-    }
-
-    if (matchCount === 0) return false;
-    return matchCount;
+    const immediateCount = this.checkImmediate(new Set(exports.iterUsedKeys(usedKeysMap, start, start)));
+    if (immediateCount === false) return false;
+    
+    const matchCount = atLeastOneCount + allOfCount + immediateCount;
+    return matchCount === 0 ? false : matchCount;
   }
 
   /**
@@ -127,33 +130,77 @@ class RelatableEntry {
     if (usedKeys.size === 0) return false;
 
     // Check negated relations.
-    for (const relation of this.negated)
-      if (usedKeys.has(relation.key)) return false;
-    
-    let matchCount = 0;
+    if (!this.checkNegated(usedKeys)) return false;
     
     // Check at-least-one relations.
-    if (this.atLeastOne.length > 0) {
-      for (const relation of this.atLeastOne)
-        if (usedKeys.has(relation.key)) matchCount += 1;
-      if (matchCount === 0) return false;
-    }
+    const atLeastOneCount = this.checkAtLeastOne(usedKeys);
+    if (atLeastOneCount === false) return false;
 
     // Check all-of relations.
+    const allOfCount = this.checkAllOf(usedKeys);
+    if (allOfCount === false) return false;
+
+    // Exit early if we're not interested in immediate relations.
+    if (!includeImmediate) return atLeastOneCount + allOfCount;
+
+    // Check immediate relations.
+    const immediateCount = this.checkImmediate(usedKeys);
+    if (immediateCount === false) return false;
+
+    return atLeastOneCount + allOfCount + immediateCount;
+  }
+
+  /**
+   * @param {Set<string>} usedKeys
+   * @returns {boolean}
+   */
+  checkNegated(usedKeys) {
+    if (this.negated.length === 0) return true;
+
+    for (const relation of this.negated)
+      if (usedKeys.has(relation.key)) return false;
+    return true;
+  }
+
+  /**
+   * @param {Set<string>} usedKeys
+   * @returns {number | false}
+   */
+  checkAtLeastOne(usedKeys) {
+    if (this.atLeastOne.length === 0) return 0;
+    if (usedKeys.size === 0) return false;
+
+    let matchCount = 0;
+    for (const relation of this.atLeastOne)
+      if (usedKeys.has(relation.key)) matchCount += 1;
+    return matchCount === 0 ? false : matchCount;
+  }
+
+  /**
+   * @param {Set<string>} usedKeys
+   * @returns {number | false}
+   */
+  checkAllOf(usedKeys) {
+    if (this.allOf.length === 0) return 0;
+    if (usedKeys.size === 0) return false;
+
     for (const relation of this.allOf)
       if (!usedKeys.has(relation.key)) return false;
     // Since they all had to match, just toss them in!
-    matchCount += this.allOf.length;
+    return this.allOf.length;
+  }
 
-    // Check immediate relations, if requested.
-    if (includeImmediate && this.immediate.length > 0) {
-      for (const relation of this.immediate)
-        if (!usedKeys.has(relation.key)) return false;
-      matchCount += this.immediate.length;
-    }
+  /**
+   * @param {Set<string>} usedKeys
+   * @returns {number | false}
+   */
+  checkImmediate(usedKeys) {
+    if (this.immediate.length === 0) return 0;
+    if (usedKeys.size === 0) return false;
 
-    if (matchCount === 0) return false;
-    return matchCount;
+    for (const relation of this.immediate)
+      if (!usedKeys.has(relation.key)) return false;
+    return this.immediate.length;
   }
 }
 

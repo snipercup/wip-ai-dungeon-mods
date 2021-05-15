@@ -6,6 +6,7 @@ const { flatMap, iterReverse, chain, toPairs, fromPairs, tuple2 } = require("../
 const { makeExcerpt, stateDataString } = require("./utils");
 const { stateModule: coreModule } = require("./core");
 const { stateModule: vanillaModule } = require("./standard/vanilla");
+const { stateModule: classModule } = require("./standard/class");
 const turnCache = require("../turn-cache");
 
 /**
@@ -17,7 +18,7 @@ const turnCache = require("../turn-cache");
 exports.inputModifier = (...stateModules) => {
   // Make sure the core module comes first, even if it was already in `stateModules`.
   // We also throw in the vanilla module, for backward compatibility.
-  const theModules = new Set([coreModule, vanillaModule, ...stateModules]);
+  const theModules = new Set([coreModule, vanillaModule, classModule, ...stateModules]);
   const modifierFns = [
     ...flatMap(theModules, (m) => m.pre ?? []),
     ...flatMap(theModules, (m) => m.exec ?? []),

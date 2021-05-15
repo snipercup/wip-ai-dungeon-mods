@@ -35,7 +35,6 @@ const npcImplicitInclusionDiceSides = 20;
 const init = (data) => {
   const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
   const { RelatableEntry } = require("../state-engine/RelatableEntry");
-  const { iterUsedKeys } = require("../state-engine/StateEngineEntry");
   const { isExclusiveKeyword, isInclusiveKeyword, isRelationOfType } = require("../state-engine/StateEngineEntry");
   /** @type {(relDef: AnyRelationDef) => boolean} */
   const isNegatedRelation = (relDef) => isRelationOfType(relDef, "negated");
@@ -265,8 +264,7 @@ const init = (data) => {
       const { source, usedKeys } = params;
 
       if (this.relations.length === 0) return true;
-      const nearbyUsedKeys = new Set(iterUsedKeys(usedKeys, source, source + 1));
-      const result = this.relator.check(nearbyUsedKeys);
+      const result = this.relator.check(usedKeys, source, source + 1);
       if (result === false) return false;
       this.relationCounts.set(source, result);
       return true;
@@ -288,7 +286,7 @@ const init = (data) => {
       // shadowing the more important state entry.
       for (const [otherEntry] of neighbors.after()) {
         if (otherEntry.type !== "State") continue;
-        if (!otherEntry.relator.check(keys)) continue;
+        if (!otherEntry.relator.checkKeys(keys)) continue;
         this.hasMatchedStateEntry = true;
         break;
       }
@@ -336,8 +334,7 @@ const init = (data) => {
       const { source, usedKeys } = params;
 
       if (this.relations.length === 0) return true;
-      const nearbyUsedKeys = new Set(iterUsedKeys(usedKeys, source, source + 2));
-      const result = this.relator.check(nearbyUsedKeys);
+      const result = this.relator.check(usedKeys, source, source + 2);
       if (result === false) return false;
       this.relationCounts.set(source, result);
       return true;

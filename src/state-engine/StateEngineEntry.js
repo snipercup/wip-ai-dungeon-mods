@@ -1,4 +1,3 @@
-const { entryCount } = require("./config");
 const { dew, tuple2, getText } = require("../utils");
 const { isParamsFor, isParamsTextable, stateDataString } = require("./utils");
 
@@ -24,7 +23,7 @@ exports.isRelationOfType = (value, type) => hasTypeOf(value, type);
 const reExactMatch = /^"([\w ]+)"$/;
 const reInclusiveKeyword = /^\+?(["\w ]+)$/;
 const reExclusiveKeyword = /^-(["\w ]+)$/;
-const reRelation = /^([:!?])([\w]+)$/;
+const reRelation = /^([:!?@])([\w]+)$/;
 
 /** Common parsers for parsing state entry definitions. */
 exports.parsers = {
@@ -58,6 +57,7 @@ exports.parsers = {
    * Matches the relation patterns.  Requires a special prefix:
    * - `:` - An "all of" relation.
    * - `?` - An "at least one" relation.
+   * - `@` - An "immediate" relation.
    * - `!` - A "negated" relation.
    * 
    * @type {PatternMatcher<AnyRelationDef>}
@@ -70,7 +70,9 @@ exports.parsers = {
     switch (typePart) {
       case ":": return { type: "allOf", key };
       case "?": return { type: "atLeastOne", key };
-      case "!": return { type: "negated", key }
+      case "@": return { type: "immediate", key };
+      case "!": return { type: "negated", key };
+      default: return undefined;
     }
   },
   /**
@@ -110,30 +112,6 @@ exports.parseKeywords = (keywords, reMatcher) => {
 
   return matches;
 };
-
-/**
- * Iterates a `usedKeys` map across a range of entries.
- * Bear in mind that the `start` and `end` are offsets from the latest
- * `history` entry into the past.
- * 
- * So, `0` is the just-now inputted text from the player, and `1` is
- * the last entry in `history`, and `2` is the the next oldest `history`
- * entry, and so on.
- * 
- * @param {UsedKeysMap} usedKeys
- * @param {number} start
- * @param {number} [end]
- * @returns {Iterable<string>}
- */
-exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
-  // Make sure we don't go beyond the available history.
-  end = Math.min(end, entryCount);
-  let index = Math.max(start, 0);
-  while(index <= end) {
-    const theKeys = usedKeys.get(index++);
-    if (theKeys) yield* theKeys;
-  }
-}
 
 /**
  * Error for general errors involving `StateEngineEntry`.
@@ -381,8 +359,7 @@ class StateEngineEntry {
     const { source, usedKeys } = params;
 
     if (this.relations.length === 0) return true;
-    const allUsedKeys = new Set(exports.iterUsedKeys(usedKeys, source));
-    const result = this.relator.check(allUsedKeys);
+    const result = this.relator.check(usedKeys, source);
     if (result === false) return false;
     this.relationCounts.set(source, result);
     return true;

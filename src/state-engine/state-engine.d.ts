@@ -24,7 +24,7 @@ interface KeywordDef<TType extends KeywordTypes> {
   value: string;
 }
 
-type RelationTypes = "allOf" | "atLeastOne" | "negated";
+type RelationTypes = "allOf" | "atLeastOne" | "immediate" | "negated";
 interface RelationDef<TType extends RelationTypes> {
   type: TType;
   key: string;

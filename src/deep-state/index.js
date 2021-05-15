@@ -116,7 +116,7 @@ const init = (data) => {
       // If this entry is already included implicitly, drop this association.
       for (const [otherEntry] of neighbors.getFor("implicit"))
         if (otherEntry.entryId === this.entryId) return false;
-      return false;
+      return true;
     }
   }
 

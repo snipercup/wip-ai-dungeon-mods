@@ -480,7 +480,7 @@ class StateEngineEntry {
    * Use `neighbors` to explore the other associations.
    * 
    * Post-rules are run in the order of:
-   * - The history, temporaly reversed order, so `0, 1, 2, ...` and so on.
+   * - The history, temporally reversed order, so `0, 1, 2, ...` and so on.
    * - The `implicitRef` source.
    * - The `frontMemory` source.
    * - The `authorsNote` source.

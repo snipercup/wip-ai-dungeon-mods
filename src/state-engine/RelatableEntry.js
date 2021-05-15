@@ -20,8 +20,9 @@ exports.iterUsedKeys = function*(usedKeys, start, end = entryCount) {
   end = Math.min(end, entryCount);
   let index = Math.max(start, 0);
   while(index <= end) {
-    const theKeys = usedKeys.get(index++);
+    const theKeys = usedKeys.get(index);
     if (theKeys) yield* theKeys;
+    index += 1;
   }
 }
 
@@ -85,9 +86,10 @@ class RelatableEntry {
    * @returns {false | number}
    */
   check(usedKeysMap, start, end = entryCount) {
-    if (!this.keysOfInterest.size) return 0;
+    // Short circuit if we have no relations.
+    if (this.keysOfInterest.size === 0) return 0;
 
-    const usedKeys = new Set([...exports.iterUsedKeys(usedKeysMap, start, end)]);
+    const usedKeys = new Set(exports.iterUsedKeys(usedKeysMap, start, end));
     let matchCount = this.checkKeys(usedKeys);
     if (matchCount === false) return false;
 
@@ -121,7 +123,7 @@ class RelatableEntry {
    * @returns {false | number}
    */
   checkKeys(usedKeys, includeImmediate = false) {
-    if (!this.keysOfInterest.size) return 0;
+    if (this.keysOfInterest.size === 0) return 0;
     if (usedKeys.size === 0) return false;
 
     // Check negated relations.

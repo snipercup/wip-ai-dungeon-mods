@@ -5,7 +5,7 @@ const { MatchCommand } = require("../commands");
 const { flatMap, iterReverse, chain, toPairs, fromPairs, tuple2 } = require("../utils");
 const { makeExcerpt, stateDataString } = require("./utils");
 const { stateModule: coreModule } = require("./core");
-const { stateModule: vanillaModule } = require("./vanilla");
+const { stateModule: vanillaModule } = require("./standard/vanilla");
 const turnCache = require("../turn-cache");
 
 /**

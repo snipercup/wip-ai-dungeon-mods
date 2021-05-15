@@ -1,8 +1,8 @@
-/// <reference path="./state-engine.d.ts" />
-const { chain, partition, fromPairs, tuple } = require("../utils");
-const { addStateEntry } = require("./registry");
-const { isRelation } = require("./StateEngineEntry");
-const { EngineEntryForWorldInfo, parsers } = require("./EngineEntryForWorldInfo");
+/// <reference path="../state-engine.d.ts" />
+const { chain, partition, fromPairs, tuple } = require("../../utils");
+const { addStateEntry } = require("../registry");
+const { isRelation } = require("../StateEngineEntry");
+const { EngineEntryForWorldInfo, parsers } = require("../EngineEntryForWorldInfo");
 
 /**
  * Does some global setup for this module.

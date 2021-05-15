@@ -72,6 +72,19 @@ exports.parsers = {
       case "?": return { type: "atLeastOne", key };
       case "!": return { type: "negated", key }
     }
+  },
+  /**
+   * A composite parser that matches relation and keyword patterns.
+   * 
+   * @type {PatternMatcher<AnyMatcherDef>}
+   */
+  matcher: (text) => {
+    const matched
+      = exports.parsers.relation(text)
+      ?? exports.parsers.includedKeyword(text)
+      ?? exports.parsers.excludedKeyword(text);
+    if (matched) return matched;
+    return undefined;
   }
 };
 

@@ -1,7 +1,8 @@
 /// <reference path="./state-engine.d.ts" />
-const { tuple } = require("../utils");
+const { chain, partition, fromPairs, tuple } = require("../utils");
 const { addStateEntry } = require("./registry");
-const { EngineEntryForWorldInfo } = require("./EngineEntryForWorldInfo");
+const { isRelation } = require("./StateEngineEntry");
+const { EngineEntryForWorldInfo, parsers } = require("./EngineEntryForWorldInfo");
 
 /**
  * Does some global setup for this module.
@@ -23,18 +24,27 @@ const { EngineEntryForWorldInfo } = require("./EngineEntryForWorldInfo");
      */
     parse(worldInfo) {
       const { keys } = worldInfo;
-      /** @type {AnyKeywordDef[]} */
-      const keywords = keys
+      /** @type {AnyMatcherDef[]} */
+      const matchers = keys
         .split(",")
         .map(s => s.trim())
         .filter(Boolean)
-        .map((value) => ({ type: "include", exactMatch: false, value }));
-      return {
-        keys: [],
-        type: "VanillaEntry",
-        relations: [],
-        keywords
-      };
+        .map((text) => {
+          const matcher = parsers.matcher(text);
+          if (matcher) return matcher;
+          // Fall back on a simple inclusive keyword.
+          /** @type {KeywordDef<"include">} */
+          const result = { type: "include", exactMatch: false, value: text };
+          return result;
+        });
+
+      // @ts-ignore - TS is stupid with defaults in destructuring.
+      const { relations = [], keywords = [] } = chain(matchers)
+        .map((matcher) => isRelation(matcher) ? tuple("relations", matcher) : tuple("keywords", matcher))
+        .thru((kvps) => partition(kvps))
+        .value((kvps) => fromPairs(kvps));
+
+      return { keys: [], type: "VanillaEntry", relations, keywords };
     }
   }
 

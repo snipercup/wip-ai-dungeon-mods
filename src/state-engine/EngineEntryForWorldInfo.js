@@ -71,10 +71,7 @@ exports.parsers = {
     /** @type {Array<AnyMatcherDef>} */
     const matchers = [];
     for (const matcherFrag of matcherFrags) {
-      const matched
-        = baseParsers.relation(matcherFrag)
-        ?? baseParsers.includedKeyword(matcherFrag)
-        ?? baseParsers.excludedKeyword(matcherFrag);
+      const matched = baseParsers.matcher(matcherFrag);
       if (!matched) return undefined;
       matchers.push(matched);
     }

@@ -133,7 +133,11 @@ const contextModifier = (data) => {
   data.text = [...styleText, ...notesText, ...summaryText, ...storyText].join("\n");
 };
 
-/** @type {ContextModeModule} */
+/**
+ * A context mode that annotates everything it inserts with a descriptive tag.
+ * 
+ * @type {ContextModeModule}
+ */
 exports.contextModeModule = {
   name: "annotated",
   context: contextModifier

@@ -1,4 +1,4 @@
-/// <reference path="./forward-context-mode.d.ts" />
+/// <reference path="./common-context-mode.d.ts" />
 /// <reference path="../context-mode/context-mode.d.ts" />
 const { dew, getText } = require("../utils");
 const { chain, iterReverse, iterPosition, limitText } = require("../utils");
@@ -8,11 +8,14 @@ const { entrySorter } = require("../state-engine/entrySorting");
 const { entrySelector } = require("../state-engine/entrySelection");
 
 const MAX_MEMORY_FACTOR = 1/3;
-const NOTES = "Narrator's Notes:";
-const BREAK = "--------";
 
-/** @type {BundledModifierFn} */
-const contextModifier = (data) => {
+/**
+ * Constructs a variations on a relatively successful context pattern.
+ * 
+ * @param {CommonModeConfig} config 
+ * @returns {BundledModifierFn}
+ */
+const contextModifier = (config) => (data) => {
   // Only begin working after the second turn.
   if (data.actionCount <= 2) return;
 
@@ -32,21 +35,21 @@ const contextModifier = (data) => {
   // Compile a set of history sources, so we know (roughly) how far back we can look.
   const historySources = new Set(chain(historyData).map((hd) => hd.sources.keys()).flatten().value());
 
-  const styleText = dew(() => {
+  const authorsNoteText = dew(() => {
     if (!authorsNote) return "";
     const theStyle = cleanText(authorsNote);
     if (theStyle.length === 0) return "";
-    return ["[Direction: ", ...theStyle.join(" "), "]"].join("");
+    return [`[${config.authorsNoteText}: `, ...theStyle.join(" "), "]"].join("");
   });
 
-  const styleLength = joinedLength(styleText);
+  const styleLength = joinedLength(authorsNoteText);
 
   // We require State Engine to function, but can still style a few things.
   const cacheData = getClosestCache(data);
   
   // Convert the player memory into something resembling State Engine entries,
   // and incorporate any State Engine entries we want to use as notes.
-  /** @type {Iterable<ForwardEntry>} */
+  /** @type {Iterable<CommonModeEntry>} */
   const theNotes = dew(() => {
     const forContext = cacheData?.forContextMemory ?? [];
     const forHistory = cacheData?.forHistory ? Object.values(cacheData.forHistory) : [];
@@ -83,7 +86,7 @@ const contextModifier = (data) => {
       .value((limitedNotes) => {
         const result = [...limitedNotes];
         if (result.length === 0) return [];
-        return [NOTES, ...result];
+        return [`${config.notesHeader}:`, ...result];
       });
   });
 
@@ -113,20 +116,20 @@ const contextModifier = (data) => {
           lengthGetter: (text) => text ? text.length + 1 : 0
         }
       ))
-      // Finally, lets insert the `styleText` on the third line-break
+      // Finally, lets insert the `authorsNoteText` on the third line-break
       // from the end of the context.  This will make sure it's closer
       // to the end of the context, and will hopefully have more weight
       // with the AI.
       .thru(function* (story) {
-        if (styleText) {
+        if (authorsNoteText) {
           for (const [pos, text] of iterPosition(story)) {
-            if (pos === 3) yield styleText;
+            if (pos === 3) yield authorsNoteText;
             yield text;
           }
         }
         else yield* story;
       })
-      .concat(theSummary, BREAK)
+      .concat(theSummary, config.notesBreak)
       .thru(iterReverse)
       .value();
   });
@@ -134,8 +137,30 @@ const contextModifier = (data) => {
   data.text = [...notesText, ...storyText].join("\n");
 };
 
-/** @type {ContextModeModule} */
-exports.contextModeModule = {
+/**
+ * A context mode that resembles the forward section of fan-fiction.
+ * 
+ * @type {ContextModeModule}
+ */
+exports.forwardModule = {
   name: "forward",
-  context: contextModifier
+  context: contextModifier({
+    notesHeader: "Reader's Notes",
+    notesBreak: "--------",
+    authorsNoteText: "Author's Note"
+  })
+};
+
+/**
+ * A context mode that resembles an audio book script, perhaps.
+ * 
+ * @type {ContextModeModule}
+ */
+exports.narratorModule = {
+  name: "narrator",
+  context: contextModifier({
+    notesHeader: "Narrator's Notes",
+    notesBreak: "\n",
+    authorsNoteText: "Direction"
+  })
 };

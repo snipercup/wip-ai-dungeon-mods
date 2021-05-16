@@ -76,6 +76,52 @@ exports.hasIterator = (value) =>
   value != null && typeof value === "object" && Symbol.iterator in value;
 
 /**
+ * Tests the `left` set to see if any values are shared in the `right` set.
+ * 
+ * Both sets must contain items to be considered "intersecting".
+ * 
+ * @param {Set<any>} left
+ * @param {Set<any>} right
+ * @returns {boolean}
+ */
+exports.setsIntersect = (left, right) => {
+  // My gut says that since an empty-set is a sub-set of all sets, those who
+  // love maths would say it intersects with every set.  But I don't find that
+  // behavior extremely useful...  >.>
+  if (left.size === 0 || right.size === 0) return false;
+  for (const item of left) if (right.has(item)) return true;
+  return false;
+};
+
+/**
+ * Tests two sets contain the same items, using strict equality.
+ * 
+ * @param {Set<any>} left
+ * @param {Set<any>} right
+ * @returns {boolean}
+ */
+exports.setsEqual = (left, right) => {
+  if (left.size !== right.size) return false;
+  for (const v of left) if (!right.has(v)) return false;
+  return true;
+};
+
+/**
+ * Tests if `maybeSubset` is a sub-set of `otherSet`.
+ * 
+ * @param {Set<any>} maybeSubset
+ * @param {Set<any>} otherSet
+ * @returns {boolean}
+ */
+exports.setIsSubsetOf = (maybeSubset, otherSet) => {
+  if (maybeSubset.size === 0) return true;
+  if (otherSet.size === 0) return false;
+  for (const item of maybeSubset)
+    if (!otherSet.has(item)) return false;
+  return true;
+};
+
+/**
  * Creates an object from key-value-pairs.
  * 
  * @template {[string | number, any]} KVP

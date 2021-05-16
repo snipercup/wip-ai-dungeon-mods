@@ -77,6 +77,10 @@ const init = (data) => {
     }
 
     /**
+     * If this is a single-player session, the player entry is always included as an
+     * implicit reference.  In multi-player sessions, it works like a very powerful
+     * `State` entry instead.
+     * 
      * @param {MatchableEntry} matcher 
      * @param {AssociationParamsFor<this>} params 
      * @returns {boolean}
@@ -140,6 +144,9 @@ const init = (data) => {
     }
 
     /**
+     * Has a chance to implicitly include an NPC, as a means to "remind" the AI of
+     * their existence.
+     * 
      * @param {MatchableEntry} matcher 
      * @param {AssociationParamsFor<this>} params 
      * @returns {boolean}
@@ -205,6 +212,16 @@ const init = (data) => {
     get targetSources() { return tuple("history"); }
 
     /**
+     * Copies the matchers from another `Lore` entry when this entry lacks positive
+     * matchers and it shares all the same key with exactly one other lore entry that
+     * only has positive matchers.
+     * 
+     * Negative matchers are not considered for this entry, allowing you to exclude
+     * it when certain keywords appear.
+     * 
+     * This makes it a little less irritating to create multiple lore entries for
+     * the same concept or thing.
+     * 
      * @param {Map<string, StateDataForModifier>} allStates
      * @returns {void}
      */
@@ -213,11 +230,9 @@ const init = (data) => {
       if (this.keywords.some(isInclusiveKeyword)) return;
       if (this.relations.some(isInclusiveRelation)) return;
 
-      // If a `$Lore` has the same `keys` as another entry of the same type,
+      // If a `Lore` has the same `keys` as another entry of the same type,
       // and this entry lacks inclusive matchers, but the other does not, we'll
-      // copy those matchers to this entry.  This makes it a little less irritating
-      // to create multiple lore entries for the same concept or thing.
-      // Only works for lore entries with no exclusion keywords or negated relations.
+      // copy those matchers to this entry.
       const duplicateEntries = chain(allStates.values())
         .filter((sd) => {
           // Must be the same type.
@@ -245,8 +260,12 @@ const init = (data) => {
     }
 
     /**
-     * If a`$Lore` entry lacks keywords, we limit the range the relations can match
+     * If a `Lore` entry lacks keywords, we limit the range the relations can match
      * to only the current history entry and the one immediately before it.
+     * 
+     * This keeps `Lore` entries that have no connection to the text from getting
+     * thrown on to any entry, willy-nilly, while still giving it the chance to
+     * provide a little more context to a previous entry.
      * 
      * @param {MatchableEntry} matcher
      * @param {AssociationParamsFor<this>} params
@@ -266,14 +285,15 @@ const init = (data) => {
     }
 
     /**
+     * Does some pre-processing on the matches, looking for a later `State`
+     * entry that references this `Lore` entry.
+     * 
      * @param {MatchableEntry} matcher
      * @param {AssociationSourcesFor<this>} source
      * @param {PreRuleIterators} neighbors
      * @returns {boolean}
      */
     preRules(matcher, source, neighbors) {
-      // Do some pre-processing, looking for matching `State` entries that
-      // reference this `Lore`.
       const { keys } = this;
       if (keys.size === 0) return true;
 
@@ -290,13 +310,14 @@ const init = (data) => {
     }
 
     /**
+     * Give a boost if this `Lore` was referenced by a later `State`.
+     * 
      * @param {MatchableEntry} matcher
      * @param {AssociationSourcesFor<this>} source
      * @param {StateEngineEntry | HistoryEntry | string} entry
      * @returns {number}
      */
     valuator(matcher, source, entry) {
-      // Give a boost if this `Lore` was referenced by a later `State`.
       const scalar = this.hasMatchedStateEntry ? 2 : 1;
       return super.valuator(matcher, source, entry, scalar);
     }
@@ -314,7 +335,7 @@ const init = (data) => {
     }
 
     /**
-     * The "State" type is a little bit different.  It's for immediately relevant
+     * The `State` type is a little bit different.  It's for immediately relevant
      * information.  When it has relations, we want to only associate this with
      * entries that are nearby to the related matches.  We define this as being
      * the current history entry and the two immediately before it.
@@ -352,6 +373,8 @@ const init = (data) => {
     }
 
     /**
+     * Because `State` scores can be so high and dominating over other entries,
+     * only two are allowed to ultimately be emitted.
      * 
      * @param {MatchableEntry} matcher
      * @param {AssociationSourcesFor<this>} source
@@ -360,7 +383,6 @@ const init = (data) => {
      * @returns {boolean}
      */
     postRules(matcher, source, score, neighbors) {
-      // Limit to 2 of these.
       let curCount = 0;
       for (const [otherEntry] of neighbors.selected()) {
         if (curCount >= 2) return false;

@@ -437,6 +437,7 @@ class StateEngineEntry {
    *   them, effectively penalizing the entry for not being matched through text.
    * - The number of exclusive keywords dodged.
    * - The number of related keys that had to match for this to match.
+   * - The number of negated relations dodged.
    * 
    * When overriding, if you only want to provide a boost to the base scalar, simply
    * call `super.valuator` and pass an argument for `baseScalar`.
@@ -451,12 +452,12 @@ class StateEngineEntry {
     if (baseScalar === 0) return 0;
 
     const text = getText(entry);
-    const inclusiveCount = matcher.include.length;
-    const exclusiveCount = matcher.exclude.length;
-    const penaltyRatio = tuple2(1, text && exclusiveCount > 0 ? 1 : 2);
+    const incKeywordCount = matcher.include.length;
+    const excKeywordCount = matcher.exclude.length;
+    const penaltyRatio = tuple2(1, text && excKeywordCount > 0 ? 1 : 2);
 
     const [totalMatched, uniqueMatched] = dew(() => {
-      if (inclusiveCount === 0) return penaltyRatio;
+      if (incKeywordCount === 0) return penaltyRatio;
       if (!text) return penaltyRatio;
       const totalMatched = matcher.occurrencesIn(text);
       if (totalMatched === 0) return penaltyRatio;
@@ -464,11 +465,13 @@ class StateEngineEntry {
       return [totalMatched, uniqueMatched];
     });
 
-    const keywordScalar = 10 * Math.pow(1.1, exclusiveCount);
+    const keywordScalar = 10 * Math.pow(1.1, excKeywordCount);
     const keywordBonus = Math.max(0, (totalMatched / uniqueMatched) - 1);
     const keywordPart = (uniqueMatched + keywordBonus) * keywordScalar;
 
-    const relationsPart = (this.relationCounts.get(source) ?? 0) + 1;
+    const relationsScalar = Math.pow(1.25, this.relator.negated.size);
+    const relationsMatched = this.relationCounts.get(source) ?? 0;
+    const relationsPart = (1 + relationsMatched) * relationsScalar;
 
     return baseScalar * keywordPart * relationsPart;
   }

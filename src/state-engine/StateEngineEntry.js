@@ -465,10 +465,12 @@ class StateEngineEntry {
     });
 
     const keywordScalar = 10 * Math.pow(1.1, exclusiveCount);
-    const keywordPart = totalMatched / uniqueMatched;
+    const keywordBonus = Math.max(0, (totalMatched / uniqueMatched) - 1);
+    const keywordPart = (uniqueMatched + keywordBonus) * keywordScalar;
+
     const relationsPart = (this.relationCounts.get(source) ?? 0) + 1;
 
-    return baseScalar * keywordPart * keywordScalar * relationsPart;
+    return baseScalar * keywordPart * relationsPart;
   }
 
   /**

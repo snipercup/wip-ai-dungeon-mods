@@ -454,22 +454,30 @@ class StateEngineEntry {
     const text = getText(entry);
     const incKeywordCount = matcher.include.length;
     const excKeywordCount = matcher.exclude.length;
-    const penaltyRatio = tuple2(1, text && excKeywordCount > 0 ? 1 : 2);
 
-    const [totalMatched, uniqueMatched] = dew(() => {
-      if (incKeywordCount === 0) return penaltyRatio;
-      if (!text) return penaltyRatio;
-      const totalMatched = matcher.occurrencesIn(text);
-      if (totalMatched === 0) return penaltyRatio;
-      const uniqueMatched = matcher.uniqueOccurrencesIn(text);
-      return [totalMatched, uniqueMatched];
+    const [totalMatched, uniqueMatched, keywordScalar] = dew(() => {
+      checkPenalty: {
+        if (!text) break checkPenalty;
+        if (excKeywordCount === 0 && incKeywordCount === 0) break checkPenalty;
+
+        const keywordScalar = Math.pow(1.1, excKeywordCount);
+        if (incKeywordCount === 0) return [1, 1, keywordScalar];
+
+        const totalMatched = matcher.occurrencesIn(text);
+        if (totalMatched === 0) break checkPenalty;
+
+        const uniqueMatched = matcher.uniqueOccurrencesIn(text);
+        return [totalMatched, uniqueMatched, keywordScalar];
+      }
+
+      // Only penalize if its for a text entry where keyword matching is possible.
+      return [1, 1, entry != null ? 0.5 : 1];
     });
 
-    const keywordScalar = 10 * Math.pow(1.1, excKeywordCount);
     const keywordBonus = Math.max(0, (totalMatched / uniqueMatched) - 1);
-    const keywordPart = (uniqueMatched + keywordBonus) * keywordScalar;
+    const keywordPart = 10 * (uniqueMatched + keywordBonus) * keywordScalar;
 
-    const relationsScalar = Math.pow(1.25, this.relator.negated.size);
+    const relationsScalar = Math.pow(1.1, this.relator.negated.size);
     const relationsMatched = this.relationCounts.get(source) ?? 0;
     const relationsPart = (1 + relationsMatched) * relationsScalar;
 

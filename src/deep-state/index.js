@@ -1,5 +1,5 @@
 /// <reference path="../state-engine/state-engine.d.ts" />
-const { tuple, chain, rollDice } = require("../utils");
+const { tuple, chain, rollDice, setsEqual } = require("../utils");
 const { addStateEntry } = require("../state-engine/registry");
 const { isParamsFor } = require("../state-engine/utils");
 
@@ -34,7 +34,6 @@ const npcImplicitInclusionDiceSides = 20;
  */
 const init = (data) => {
   const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
-  const { RelatableEntry } = require("../state-engine/RelatableEntry");
   const { isExclusiveKeyword, isInclusiveKeyword, isRelationOfType } = require("../state-engine/StateEngineEntry");
   /** @type {(relDef: AnyRelationDef) => boolean} */
   const isNegatedRelation = (relDef) => isRelationOfType(relDef, "negated");
@@ -224,11 +223,8 @@ const init = (data) => {
           if (sd.type !== this.type) return false;
           // Must also have keys defined.
           if (sd.keys.size === 0) return false;
-          // Must have the same keys. This is basically, `sd.keys === this.keys`, but
-          // stupid because `Set` has none of the actual set operations on it.
-          // If they are not the same, the size will increase.
-          const joinedSet = new Set([...sd.keys, ...this.keys]);
-          if (joinedSet.size !== this.keys.size) return false;
+          // Must have the same keys.
+          if (!setsEqual(sd.keys, this.keys)) return false;
           // Cannot have any negative matchers of any kind.
           if (sd.keywords.some(isExclusiveKeyword)) return false;
           if (sd.relations.some(isNegatedRelation)) return false;
@@ -284,7 +280,7 @@ const init = (data) => {
       // shadowing the more important state entry.
       for (const [otherEntry] of neighbors.after()) {
         if (otherEntry.type !== "State") continue;
-        if (!otherEntry.relator.checkKeys(keys)) continue;
+        if (!otherEntry.relator.isMemberOf(keys)) continue;
         this.hasMatchedStateEntry = true;
         break;
       }

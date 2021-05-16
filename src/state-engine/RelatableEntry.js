@@ -1,5 +1,6 @@
 const { entryCount } = require("./config");
 const { chain, partition, fromPairs, tuple } = require("../utils");
+const { setsIntersect, setIsSubsetOf } = require("../utils");
 
 /**
  * Iterates a `usedKeys` map across a range of entries.
@@ -36,38 +37,53 @@ class RelatableEntry {
     const relsByType = chain(relations)
       .map((relDef) => {
         if (isRelationOfType(relDef, "allOf"))
-          return tuple("allOf", relDef);
+          return tuple("allOf", relDef.key);
         if (isRelationOfType(relDef, "atLeastOne"))
-          return tuple("atLeastOne", relDef);
+          return tuple("atLeastOne", relDef.key);
         if (isRelationOfType(relDef, "immediate"))
-          return tuple("immediate", relDef);
+          return tuple("immediate", relDef.key);
         if (isRelationOfType(relDef, "negated"))
-          return tuple("negated", relDef);
+          return tuple("negated", relDef.key);
         throw new Error(`Unknown relation type: ${relDef.type}`);
       })
       .thru((kvps) => partition(kvps))
       .value((kvps) => fromPairs(kvps));
-    
+
+    this.allOf = new Set(relsByType.allOf ?? []);
+    this.atLeastOne = new Set(relsByType.atLeastOne ?? []);
+    this.immediate = new Set(relsByType.immediate ?? []);
+    this.negated = new Set(relsByType.negated ?? []);
+
     this.keysOfInterest = new Set(relations.map((relDef) => relDef.key));
-    this.allOf = relsByType.allOf ?? [];
-    this.atLeastOne = relsByType.atLeastOne ?? [];
-    this.immediate = relsByType.immediate ?? [];
-    this.negated = relsByType.negated ?? [];
+    this.keysForMatch = new Set([...this.allOf, ...this.atLeastOne, ...this.immediate]);
   }
 
   /**
    * Checks if this relator is interested in any of the keys in the given `keySet`.
    * 
-   * Unlike `check` and `checkKeys`, this is just checking to see if an entry is
-   * interested in another entry, including its negated keys.
+   * Unlike `isMemberOf`, this checks to see if the relator recognizes any key for
+   * any of its relations, including negated relations.  It is mostly useful for determining
+   * if a `check` would be worth running in the first place.
    * 
    * @param {Set<string>} keySet
    * @returns {boolean}
    */
   isInterestedIn(keySet) {
-    for (const key of keySet)
-      if (this.keysOfInterest.has(key)) return true;
-    return false;
+    return setsIntersect(keySet, this.keysOfInterest);
+  }
+
+  /**
+   * Checks if this relator has relations that could match a key in the given `keySet`.
+   * 
+   * Unlike `isInterestedIn`, this skips negated keys that could cause a `check` to fail.
+   * Its most useful after a successful `check` for quickly determining membership between
+   * different entries, IE: whether one entry recognizes another.
+   * 
+   * @param {Set<string>} keySet
+   * @returns {boolean}
+   */
+  isMemberOf(keySet) {
+    return setsIntersect(keySet, this.keysForMatch);
   }
 
   /**
@@ -155,11 +171,8 @@ class RelatableEntry {
    * @returns {boolean}
    */
   checkNegated(usedKeys) {
-    if (this.negated.length === 0) return true;
-
-    for (const relation of this.negated)
-      if (usedKeys.has(relation.key)) return false;
-    return true;
+    if (this.negated.size === 0) return true;
+    return !setsIntersect(usedKeys, this.negated);
   }
 
   /**
@@ -167,12 +180,12 @@ class RelatableEntry {
    * @returns {number | false}
    */
   checkAtLeastOne(usedKeys) {
-    if (this.atLeastOne.length === 0) return 0;
+    if (this.atLeastOne.size === 0) return 0;
     if (usedKeys.size === 0) return false;
 
     let matchCount = 0;
-    for (const relation of this.atLeastOne)
-      if (usedKeys.has(relation.key)) matchCount += 1;
+    for (const relKey of this.atLeastOne)
+      if (usedKeys.has(relKey)) matchCount += 1;
     return matchCount === 0 ? false : matchCount;
   }
 
@@ -181,13 +194,10 @@ class RelatableEntry {
    * @returns {number | false}
    */
   checkAllOf(usedKeys) {
-    if (this.allOf.length === 0) return 0;
+    if (this.allOf.size === 0) return 0;
     if (usedKeys.size === 0) return false;
-
-    for (const relation of this.allOf)
-      if (!usedKeys.has(relation.key)) return false;
-    // Since they all had to match, just toss them in!
-    return this.allOf.length;
+    if (!setIsSubsetOf(this.allOf, usedKeys)) return false;
+    return this.allOf.size;
   }
 
   /**
@@ -195,12 +205,10 @@ class RelatableEntry {
    * @returns {number | false}
    */
   checkImmediate(usedKeys) {
-    if (this.immediate.length === 0) return 0;
+    if (this.immediate.size === 0) return 0;
     if (usedKeys.size === 0) return false;
-
-    for (const relation of this.immediate)
-      if (!usedKeys.has(relation.key)) return false;
-    return this.immediate.length;
+    if (!setIsSubsetOf(this.immediate, usedKeys)) return false;
+    return this.immediate.size;
   }
 }
 

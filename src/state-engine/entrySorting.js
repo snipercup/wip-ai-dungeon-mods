@@ -1,4 +1,4 @@
-const { dew, isInstance, chain, memoize } = require("../utils");
+const { dew, isInstance, chain, memoize, setsIntersect } = require("../utils");
 
 /**
  * @callback SortingFn
@@ -82,9 +82,7 @@ exports.sortingHelpers = (theEntries) => {
    */
   const haveSharedKeys = (a, b) => {
     if (!a.keys || !b.keys) return false;
-    for (const key of a.keys)
-      if (b.keys.has(key)) return true;
-    return false;
+    return setsIntersect(a.keys, b.keys);
   };
 
   /**

@@ -1,4 +1,5 @@
 /// <reference path="../state-engine/state-engine.d.ts" />
+const { entryCount } = require("../state-engine/config");
 const { tuple, chain, rollDice, setsEqual } = require("../utils");
 const { addStateEntry } = require("../state-engine/registry");
 const { isParamsFor } = require("../state-engine/utils");
@@ -335,14 +336,19 @@ const init = (data) => {
     }
 
     /**
+     * Because `State` is for "immediately relevant" information, we want a
+     * bias for matches closer to the latest history entry.
+     * 
      * @param {MatchableEntry} matcher
      * @param {AssociationSourcesFor<this>} source
      * @param {StateEngineEntry | HistoryEntry | string} entry
      * @returns {number}
      */
     valuator(matcher, source, entry) {
-      // Give these entries a higher score.
-      return super.valuator(matcher, source, entry, 3);
+      const distanceScalar = 1.0 - (source / entryCount);
+      // Limited to the range of `1..3`.
+      const finalScalar = (distanceScalar * 2) + 1;
+      return super.valuator(matcher, source, entry, finalScalar);
     }
 
     /**

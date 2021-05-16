@@ -39,10 +39,10 @@ const contextModifier = (config) => (data) => {
     if (!authorsNote) return "";
     const theStyle = cleanText(authorsNote);
     if (theStyle.length === 0) return "";
-    return [`[${config.authorsNoteText}: `, ...theStyle.join(" "), "]"].join("");
+    return ["[", config.authorsNoteText, " ", ...theStyle.join(" "), "]"].join("");
   });
 
-  const styleLength = joinedLength(authorsNoteText);
+  const authorsNoteLength = joinedLength(authorsNoteText);
 
   // We require State Engine to function, but can still style a few things.
   const cacheData = getClosestCache(data);
@@ -77,7 +77,7 @@ const contextModifier = (config) => (data) => {
         notes,
         // Have to account for the new lines for `styleLines` and `notesHeader`.
         // @ts-ignore - Not typing the `reduce` correctly.
-        maxMemory - [styleLength, config.notesHeader].reduce(sumOfUsed(), 0),
+        maxMemory - [authorsNoteLength, config.notesHeader].reduce(sumOfUsed(), 0),
         { lengthGetter: ({ text }) => text.length + 1 }
       ))
       .map((note) => note.text.trim())
@@ -86,7 +86,7 @@ const contextModifier = (config) => (data) => {
       .value((limitedNotes) => {
         const result = [...limitedNotes];
         if (result.length === 0) return [];
-        return [`${config.notesHeader}:`, ...result];
+        return [config.notesHeader, ...result];
       });
   });
 
@@ -110,7 +110,7 @@ const contextModifier = (config) => (data) => {
         story,
         // Have to account for the new lines...
         // @ts-ignore - Not typing the `reduce` correctly.
-        maxChars - [notesLength, config.notesBreak, summaryLength, styleLength].reduce(sumOfUsed(), 0),
+        maxChars - [notesLength, config.notesBreak, summaryLength, authorsNoteLength].reduce(sumOfUsed(), 0),
         {
           // Here we account for the new line separating each line of the story.
           lengthGetter: (text) => text ? text.length + 1 : 0
@@ -145,9 +145,9 @@ const contextModifier = (config) => (data) => {
 exports.forwardModule = {
   name: "forward",
   context: contextModifier({
-    notesHeader: "Reader's Notes",
+    notesHeader: "Reader's Notes:",
     notesBreak: "--------",
-    authorsNoteText: "Author's Note"
+    authorsNoteText: "Author's Note:"
   })
 };
 
@@ -159,8 +159,8 @@ exports.forwardModule = {
 exports.narratorModule = {
   name: "narrator",
   context: contextModifier({
-    notesHeader: "Narrator's Notes",
+    notesHeader: "Narrator's Notes:",
     notesBreak: "\n",
-    authorsNoteText: "Direction"
+    authorsNoteText: "Direction:"
   })
 };

@@ -59,6 +59,43 @@ const contextModifier = (config) => (data) => {
       .filter(Boolean)
       .filter((sd) => typeof sd.source !== "number" || historySources.has(sd.source))
       .map((sd) => ({ ...sd, text: cleanText(sd.text).join("  ") }))
+      .thru(function* (iterStateData) {
+        // Materialize the iterable, as we need to run through it twice.
+        const allStateData = [...iterStateData];
+
+        // Favoring entries closer to the latest text.
+        // We need to know how far back we go in the history and then penalize the
+        // scores accordingly.
+        const [leeway, maxHistory] = dew(() => {
+          let maxHistory = 0;
+          for (const entry of allStateData) {
+            if (typeof entry.source !== "number") continue;
+            if (entry.source <= maxHistory) continue;
+            maxHistory = entry.source;
+          }
+          if (maxHistory <= 2) return [0, 0];
+          return [2, maxHistory];
+        });
+
+        if (maxHistory === 0) {
+          yield* allStateData;
+          return;
+        }
+
+        // If an entry's source comes from after `leeway`, we still want to penalize it.
+        const adjMax = maxHistory - leeway;
+
+        for (const sd of allStateData) {
+          // We allow the first 3 to emit without penalty.
+          if (typeof sd.source !== "number") yield sd;
+          else if (sd.source <= leeway) yield sd;
+          else {
+            const adjSource = sd.source - leeway;
+            const scoreScalar = 1 - ((adjSource / adjMax) * 0.5);
+            yield { ...sd, score: sd.score * scoreScalar };
+          }
+        }
+      })
       .concat(dew(() => {
         if (!playerMemory) return [];
         return cleanText(playerMemory)

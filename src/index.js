@@ -72,6 +72,14 @@ pipeline.commandHandler.addCommand(new SimpleCommand(
   })
 );
 
+pipeline.commandHandler.addCommand(new SimpleCommand(
+  "dump-history",
+  (data) => {
+    const texts = data.history.map((entry) => entry.text);
+    return JSON.stringify(texts, undefined, 2);
+  })
+);
+
 withMemory.addPlugin(pipeline);
 
 worldControl.addPlugin(pipeline);

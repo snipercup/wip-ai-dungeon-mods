@@ -160,7 +160,7 @@ exports.narratorModule = {
   name: "narrator",
   context: contextModifier({
     notesHeader: "Narrator's Notes:",
-    notesBreak: "\n",
+    notesBreak: "",
     authorsNoteText: "Direction:"
   })
 };

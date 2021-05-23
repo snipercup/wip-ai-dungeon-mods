@@ -13,8 +13,20 @@ declare interface HistoryEntry {
 
 declare interface WorldInfoEntry {
   id: string;
-  entry: string;
+  publicId: string;
+  name: string | null;
+  userId: string;
+  type: string;
+  generator: string;
+  tagsString: string | null;
   keys: string;
+  genre: string | null;
+  attributes: unknown;
+  entry: string;
+  description: string | null;
+  favorite: boolean;
+  tags: string[];
+  factionName: string | null;
   hidden: boolean;
 }
 
@@ -155,6 +167,9 @@ declare module "aid-bundler/src/aidData" {
 
     /** The list of prior actions by both the player and AI. */
     history: ReadonlyArray<readonly HistoryEntry>;
+
+    /** The current processing mode. */
+    mode: "input" | "context" | "output";
 
     /**
      * Whether to allow the AI to continue; corresponds to the standard `stop` in

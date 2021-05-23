@@ -68,7 +68,7 @@ const extractMemory = (data) => {
  * 
  * @type {BundledModifierFn}
  */
- exports.inputModifier = (data) => {
+exports.inputModifier = (data) => {
   if (!data.useAI) return;
   delete data.state.$$reportSummaryInOutputModifier;
 

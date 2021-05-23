@@ -6,7 +6,7 @@ const { chain, toPairs, fromPairs, tuple2 } = require("../utils");
  * @param {number} actionCount
  * @returns {[number, any] | undefined}
  */
- const getClosestCache = (stateStorage, actionCount) => {
+const getClosestCache = (stateStorage, actionCount) => {
   if (!stateStorage) return undefined;
 
   const sortedCache = chain(toPairs(stateStorage))

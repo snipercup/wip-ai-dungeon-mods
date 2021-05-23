@@ -9,7 +9,7 @@ const { addStateEntry } = require("../state-engine/registry");
  * 
  * @type {BundledModifierFn}
  */
- const init = (data) => {
+const init = (data) => {
   const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
 
   /**

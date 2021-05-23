@@ -13,7 +13,7 @@ const $$stemText = Symbol("Querying.stemText");
 exports.makeQuerying = (data, Klass) => {
   const { stemText, getStemmingData, parseHistoryKey, parseWorldInfoKey } = require("./index");
 
-  const { corpus } = getStemmingData(data);
+  const { corpus, stemMap } = getStemmingData(data);
 
   // @ts-ignore - TS is stupid with mixins right now.
   return class extends Klass {
@@ -23,14 +23,38 @@ exports.makeQuerying = (data, Klass) => {
       // @ts-ignore - Annnnd ditto.
       super(...args);
 
-      /** @type {string | undefined} */
+      /**
+       * The compiled corpus of texts used for TF-IDF querying.
+       * 
+       * @type {import("tiny-tfidf").Corpus}
+       */
+      this.corpus = corpus;
+
+      /**
+       * A map of document keys to the stemmed version of their text.
+       * 
+       * @type {Map<Stemming.AnyKey, string>}
+       */
+      this.stemMap = stemMap;
+
+      /**
+       * Private backing store for `stemText`.
+       * 
+       * @type {string | undefined}
+       */
       this[$$stemText] = undefined;
     }
 
-    /** The stemmed text for this entry. */
+    /**
+     * The stemmed text for this entry.
+     * 
+     * @type {string}
+     */
     get stemText() {
       // Due to deferred initialization, we have to make this a getter.
-      if (this[$$stemText] != null) return this[$$stemText];
+      const { [$$stemText]: storedText } = this;
+      if (typeof storedText === "string") return storedText;
+      if (!this.text.trim()) return "";
       const result = stemText(this.text);
       this[$$stemText] = result
       return result;
@@ -42,7 +66,7 @@ exports.makeQuerying = (data, Klass) => {
      * @returns {Array<[Stemming.AnyKey, number]>}
      */
     queryOnAll() {
-      return shutUpTS(corpus.getResultsForQuery(this.stemText));
+      return shutUpTS(this.corpus.getResultsForQuery(this.stemText));
     }
 
     /**

@@ -24,12 +24,11 @@ const hasWorldInfo = (entry) => {
  */
 exports.makeComparable = (data, Klass) => {
   const { getStemmingData } = require("./index");
-  const { makeQuerying } = require("./QueryingEntryMixin");
 
   const { stemMap, corpus } = getStemmingData(data);
 
   // @ts-ignore - TS is stupid with mixins right now.
-  return class extends makeQuerying(data, Klass) {
+  return class extends Klass {
 
     // @ts-ignore - Ditto.
     constructor(...args) {
@@ -46,13 +45,27 @@ exports.makeComparable = (data, Klass) => {
        */
       this.stemKey = shutUpTS(`WorldInfo(${id})`);
 
+      /**
+       * The compiled corpus of texts used for TF-IDF querying.
+       * 
+       * @type {import("tiny-tfidf").Corpus}
+       */
+      this.corpus = corpus;
+
+      /**
+       * A map of document keys to the stemmed version of their text.
+       * 
+       * @type {Map<Stemming.AnyKey, string>}
+       */
+      this.stemMap = stemMap;
+
       if (!stemMap.has(this.stemKey))
         throw new Error(`No stemming data for world-info \`${id}\` exists.`);
     }
 
     /** The stemmed text for this entry. */
     get stemText() {
-      return stemMap.get(this.stemKey);
+      return this.stemMap.get(this.stemKey);
     }
 
     /**
@@ -74,10 +87,10 @@ exports.makeComparable = (data, Klass) => {
       );
 
       if (otherName == null) return 0;
-      if (!stemMap.has(otherName)) return 0;
+      if (!this.stemMap.has(otherName)) return 0;
 
       /** @type {Array<[Stemming.AnyKey, number]>} */
-      const commonTerms = shutUpTS(corpus.getCommonTerms(this.stemKey, otherName));
+      const commonTerms = shutUpTS(this.corpus.getCommonTerms(this.stemKey, otherName));
       return commonTerms.reduce((pv, [, cv]) => pv + cv, 0);
     }
 

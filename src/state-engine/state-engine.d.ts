@@ -200,6 +200,8 @@ interface StateDataCache {
   forHistory: Record<number, StateEngineCacheData>;
 };
 
+type ValuationStats = { matched: number, bonus: number, scalar: number };
+
 /** A generic interface for sortable things. */
 interface SortableEntry {
   text?: string;

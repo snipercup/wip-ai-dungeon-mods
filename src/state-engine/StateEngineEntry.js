@@ -451,37 +451,59 @@ class StateEngineEntry {
   valuator(matcher, source, entry, baseScalar = 1) {
     if (baseScalar === 0) return 0;
 
+    const keywordStats = this.getKeywordStats(matcher, source, entry);
+    const keywordPart = (keywordStats.matched + keywordStats.bonus) * keywordStats.scalar;
+
+    const relationStats = this.getRelationStats(matcher, source, entry);
+    const relationsPart = (relationStats.matched + relationStats.bonus) * relationStats.scalar;
+
+    return 10 * baseScalar * keywordPart * relationsPart;
+  }
+
+  /**
+   * Calculates information about the performance of keyword matching.
+   * 
+   * @param {MatchableEntry} matcher
+   * @param {AssociationSourcesFor<this>} source
+   * @param {StateEngineEntry | HistoryEntry | string} entry
+   * @returns {ValuationStats}
+   */
+  getKeywordStats(matcher, source, entry) {
     const text = getText(entry);
     const incKeywordCount = matcher.include.length;
     const excKeywordCount = matcher.exclude.length;
 
-    const [totalMatched, uniqueMatched, keywordScalar] = dew(() => {
-      checkPenalty: {
-        if (!text) break checkPenalty;
-        if (excKeywordCount === 0 && incKeywordCount === 0) break checkPenalty;
+    checkPenalty: {
+      if (!text) break checkPenalty;
+      if (excKeywordCount === 0 && incKeywordCount === 0) break checkPenalty;
 
-        const keywordScalar = Math.pow(1.1, excKeywordCount);
-        if (incKeywordCount === 0) return [1, 1, keywordScalar];
+      const scalar = Math.pow(1.1, excKeywordCount);
+      if (incKeywordCount === 0) return { matched: 0, bonus: 1, scalar };
 
-        const totalMatched = matcher.occurrencesIn(text);
-        if (totalMatched === 0) break checkPenalty;
+      const totalMatched = matcher.occurrencesIn(text);
+      if (totalMatched === 0) break checkPenalty;
 
-        const uniqueMatched = matcher.uniqueOccurrencesIn(text);
-        return [totalMatched, uniqueMatched, keywordScalar];
-      }
+      const uniqueMatched = matcher.uniqueOccurrencesIn(text);
+      const bonus = Math.max(0, (totalMatched / uniqueMatched) - 1);
+      return { matched: uniqueMatched, bonus, scalar };
+    }
 
-      // Only penalize if its for a text entry where keyword matching is possible.
-      return [1, 1, entry != null ? 0.5 : 1];
-    });
+    // Only penalize if its for a text entry where keyword matching is possible.
+    return { matched: 0, bonus: 1, scalar: entry != null ? 0.5 : 1 };
+  }
 
-    const keywordBonus = Math.max(0, (totalMatched / uniqueMatched) - 1);
-    const keywordPart = 10 * (uniqueMatched + keywordBonus) * keywordScalar;
-
-    const relationsScalar = Math.pow(1.1, this.relator.negated.size);
-    const relationsMatched = this.relationCounts.get(source) ?? 0;
-    const relationsPart = (1 + relationsMatched) * relationsScalar;
-
-    return baseScalar * keywordPart * relationsPart;
+  /**
+   * Calculates information about the performance of relation matching.
+   * 
+   * @param {MatchableEntry} matcher
+   * @param {AssociationSourcesFor<this>} source
+   * @param {StateEngineEntry | HistoryEntry | string} entry
+   * @returns {ValuationStats}
+   */
+  getRelationStats(matcher, source, entry) {
+    const scalar = Math.pow(1.1, this.relator.negated.size);
+    const matched = this.relationCounts.get(source) ?? 0;
+    return { matched, bonus: 1, scalar };
   }
 
   /**

@@ -35,7 +35,9 @@ const npcImplicitInclusionDiceSides = 20;
  */
 const init = (data) => {
   const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
+  const { makeComparable } = require("../stemming/ComparableEntryMixin");
   const { isExclusiveKeyword, isInclusiveKeyword, isRelationOfType } = require("../state-engine/StateEngineEntry");
+
   /** @type {(relDef: AnyRelationDef) => boolean} */
   const isNegatedRelation = (relDef) => isRelationOfType(relDef, "negated");
   /** @type {(relDef: AnyRelationDef) => boolean} */
@@ -198,7 +200,7 @@ const init = (data) => {
     }
   }
 
-  class LoreEntry extends EngineEntryForWorldInfo {
+  class LoreEntry extends makeComparable(data, EngineEntryForWorldInfo) {
     /**
      * @param {WorldInfoEntry} worldInfo
      */
@@ -323,7 +325,7 @@ const init = (data) => {
     }
   }
 
-  class StateEntry extends EngineEntryForWorldInfo {
+  class StateEntry extends makeComparable(data, EngineEntryForWorldInfo) {
     static get forType() { return "State"; }
     get targetSources() { return tuple("history"); }
 

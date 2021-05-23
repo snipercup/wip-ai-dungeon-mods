@@ -2,7 +2,12 @@
   "scripts": {
     "bundle": "aid-bundler ./src/index.js"
   },
+  "sideEffects": false,
   "dependencies": {
-    "aid-bundler": "git://github.com/TaleirOfDeynai/aid-bundler.git"
+    "aid-bundler": "git://github.com/TaleirOfDeynai/aid-bundler.git",
+    "tiny-tfidf": "0.9.1",
+    "stemmer": "2.0.0",
+    "lancaster-stemmer": "2.0.0",
+    "stopwords": "0.0.9"
   }
 }

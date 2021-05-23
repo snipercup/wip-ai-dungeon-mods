@@ -1,5 +1,6 @@
 node_modules/**
 build/**
-OLD/**
+scripts/**
+
 package-lock.json
 yarn.lock

@@ -82,31 +82,6 @@ exports.makeComparable = (data, Klass) => {
     }
 
     /**
-     * Will use an alternative valuation when entries are associated without keywords.
-     * 
-     * @param {MatchableEntry} matcher
-     * @param {AssociationSourcesFor<this>} source
-     * @param {StateEngineEntry | HistoryEntry | string} entry
-     * @param {number} [baseScalar]
-     * @returns {number}
-     */
-    valuator(matcher, source, entry, baseScalar = 1) {
-      // Only do comparison scoring when entry has no positive keywords.
-      if (matcher.include.length > 0)
-        return super.valuator(matcher, source, entry, baseScalar);
-
-      const compareScore = dew(() => {
-        if (typeof source === "number") return this.compareAgainst(source);
-        if (hasStemKey(entry)) return this.compareAgainst(entry);
-        if (hasWorldInfo(entry)) return this.compareAgainst(entry);
-        return 0;
-      });
-
-      const finalScalar = baseScalar + (compareScore * 0.25);
-      return super.valuator(matcher, source, entry, finalScalar);
-    }
-
-    /**
      * Will use alternative keyword scaling when entries are associated without keywords.
      * 
      * @param {MatchableEntry} matcher

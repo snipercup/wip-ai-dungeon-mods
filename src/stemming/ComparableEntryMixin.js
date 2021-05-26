@@ -25,8 +25,6 @@ const hasWorldInfo = (entry) => {
 exports.makeComparable = (data, Klass) => {
   const { getStemmingData } = require("./index");
 
-  const { stemMap, corpus } = getStemmingData(data);
-
   // @ts-ignore - TS is stupid with mixins right now.
   return class extends Klass {
 
@@ -44,28 +42,25 @@ exports.makeComparable = (data, Klass) => {
        * @type {Stemming.WorldInfoKey}
        */
       this.stemKey = shutUpTS(`WorldInfo(${id})`);
+    }
 
-      /**
-       * The compiled corpus of texts used for TF-IDF querying.
-       * 
-       * @type {import("tiny-tfidf").Corpus}
-       */
-      this.corpus = corpus;
+    /** The compiled corpus of texts used for TF-IDF querying. */
+    get corpus() {
+      return getStemmingData(data).corpus;
+    }
 
-      /**
-       * A map of document keys to the stemmed version of their text.
-       * 
-       * @type {Map<Stemming.AnyKey, string>}
-       */
-      this.stemMap = stemMap;
-
-      if (!stemMap.has(this.stemKey))
-        throw new Error(`No stemming data for world-info \`${id}\` exists.`);
+    /** A map of document keys to the stemmed version of their text. */
+    get stemMap() {
+      return getStemmingData(data).stemMap;
     }
 
     /** The stemmed text for this entry. */
     get stemText() {
-      return this.stemMap.get(this.stemKey);
+      const value = this.stemMap.get(this.stemKey);
+      if (typeof value === "string") return value;
+
+      // This should not occur, and if it does, shut... down... EVERYTHING!
+      throw new Error(`No stemming data for world-info \`${this.worldInfo.id}\` exists.`);
     }
 
     /**

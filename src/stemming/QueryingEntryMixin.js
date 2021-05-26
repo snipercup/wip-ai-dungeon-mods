@@ -13,8 +13,6 @@ const $$stemText = Symbol("Querying.stemText");
 exports.makeQuerying = (data, Klass) => {
   const { stemText, getStemmingData, parseHistoryKey, parseWorldInfoKey } = require("./index");
 
-  const { corpus, stemMap } = getStemmingData(data);
-
   // @ts-ignore - TS is stupid with mixins right now.
   return class extends Klass {
 
@@ -24,25 +22,21 @@ exports.makeQuerying = (data, Klass) => {
       super(...args);
 
       /**
-       * The compiled corpus of texts used for TF-IDF querying.
-       * 
-       * @type {import("tiny-tfidf").Corpus}
-       */
-      this.corpus = corpus;
-
-      /**
-       * A map of document keys to the stemmed version of their text.
-       * 
-       * @type {Map<Stemming.AnyKey, string>}
-       */
-      this.stemMap = stemMap;
-
-      /**
        * Private backing store for `stemText`.
        * 
        * @type {string | undefined}
        */
       this[$$stemText] = undefined;
+    }
+
+    /** The compiled corpus of texts used for TF-IDF querying. */
+    get corpus() {
+      return getStemmingData(data).corpus;
+    }
+
+    /** A map of document keys to the stemmed version of their text. */
+    get stemMap() {
+      return getStemmingData(data).stemMap;
     }
 
     /**

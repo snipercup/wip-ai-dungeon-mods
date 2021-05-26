@@ -64,6 +64,12 @@ const init = (data) => {
     get targetSources() { return tuple("implicit", "history"); }
     get priority() { return 100; }
 
+    /** A value determining if there are multiple named players. */
+    get inMultiplayerMode() {
+      // Let's only count named characters.
+      return info.characters.filter((char) => Boolean(char.name)).length > 1;
+    }
+
     validator() {
       const issues = super.validator();
       if (!this.keys.size)
@@ -89,7 +95,7 @@ const init = (data) => {
      */
     associator(matcher, params) {
       // Always include it implicitly when there's only a single player.
-      if (isParamsFor("implicit", params) && info.characters.length <= 1) return true;
+      if (isParamsFor("implicit", params) && !this.inMultiplayerMode) return true;
       // Use the default associator, otherwise.
       return super.associator(matcher, params);
     }

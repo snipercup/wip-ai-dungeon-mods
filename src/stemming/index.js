@@ -6,7 +6,7 @@ const { Corpus } = require("tiny-tfidf");
 const { lancasterStemmer: stemmer } = require("lancaster-stemmer");
 const { shutUpTS, chain, memoize, iterPosition, tuple, iterReverse } = require("../utils");
 
-const exSpecialApostrophe = /(?:'s|'ll|'d)(?=\W)/g;
+const exSpecialApostrophe = /'(?:s|ll|d)(?=\W|$)/g;
 const exRestApostrophe = /(\w)'(\w)/g;
 const exNotWord = /\W+/;
 

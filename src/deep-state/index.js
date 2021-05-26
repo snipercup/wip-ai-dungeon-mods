@@ -207,7 +207,8 @@ const init = (data) => {
     constructor(worldInfo) {
       super(worldInfo);
 
-      this.hasMatchedStateEntry = false;
+      /** @type {Map<AssociationSources, boolean>} */
+      this.hasMatchedStateMap = new Map();
     }
 
     static get forType() { return "Lore"; }
@@ -304,7 +305,7 @@ const init = (data) => {
       for (const [otherEntry] of neighbors.after()) {
         if (otherEntry.type !== "State") continue;
         if (!otherEntry.relator.isMemberOf(keys)) continue;
-        this.hasMatchedStateEntry = true;
+        this.hasMatchedStateMap.set(source, true);
         break;
       }
 
@@ -320,7 +321,7 @@ const init = (data) => {
      * @returns {number}
      */
     valuator(matcher, source, entry) {
-      const scalar = this.hasMatchedStateEntry ? 2 : 1;
+      const scalar = this.hasMatchedStateMap.get(source) ? 2 : 1;
       return super.valuator(matcher, source, entry, scalar);
     }
   }

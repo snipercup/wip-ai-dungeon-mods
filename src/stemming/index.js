@@ -16,7 +16,6 @@ const stemWord = memoize(
   /** @type {(word: string) => string | undefined} */
   (word) => {
     if (!word) return undefined;
-    word = word.toLowerCase();
     if (stopwords.has(word)) return undefined;
 
     const stem = stemmer(word);
@@ -60,6 +59,8 @@ exports.parseWorldInfoKey = (stemKey) => {
  */
 exports.stemText = (text) => {
   const prepped = text
+    // Lower-case everything for better memoization. 
+    .toLowerCase()
     // Remove possessive forms and contractions often attached to names.
     .replace(exSpecialApostrophe, "")
     // Get rid of other common uses of apostrophes.

@@ -168,8 +168,8 @@ declare module "aid-bundler/src/aidData" {
     /** The list of prior actions by both the player and AI. */
     history: ReadonlyArray<readonly HistoryEntry>;
 
-    /** The current processing mode. */
-    mode: "input" | "context" | "output";
+    /** The current processing phase. */
+    phase: "input" | "context" | "output";
 
     /**
      * Whether to allow the AI to continue; corresponds to the standard `stop` in

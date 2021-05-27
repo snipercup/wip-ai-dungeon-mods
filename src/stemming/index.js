@@ -128,7 +128,7 @@ exports.compileEntries = (data, forContext = false) => {
  */
 exports.getStemmingData = (data) => {
   if (data.stemmingData) return data.stemmingData;
-  data.stemmingData = exports.compileEntries(data, data.mode === "context");
+  data.stemmingData = exports.compileEntries(data, data.phase === "context");
   return data.stemmingData;
 };
 

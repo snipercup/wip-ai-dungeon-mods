@@ -45,7 +45,7 @@ const init = (data) => {
     validator() {
       const issues = super.validator();
       if (this.keys.size > 1)
-        issues.push(`World info entry \`${this.infoKey}\` can have, at most, one key.`);
+        issues.push(`World info entry \`${this.infoKey}\` can have, at most, one tag.`);
       return issues;
     }
 

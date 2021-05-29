@@ -73,9 +73,9 @@ const init = (data) => {
     validator() {
       const issues = super.validator();
       if (!this.keys.size)
-        issues.push(`World info entry \`${this.infoKey}\` must have at least one key.`);
+        issues.push(`World info entry \`${this.infoKey}\` must have at least one tag.`);
       if (this.relations.length)
-        issues.push(`World info entry \`${this.infoKey}\` cannot have relations.`);
+        issues.push(`World info entry \`${this.infoKey}\` cannot have relation matchers.`);
       return issues;
     }
 
@@ -140,9 +140,9 @@ const init = (data) => {
     validator() {
       const issues = super.validator();
       if (!this.keys.size)
-        issues.push(`World info entry \`${this.infoKey}\` must have at least one key.`);
+        issues.push(`World info entry \`${this.infoKey}\` must have at least one tag.`);
       if (this.relations.length)
-        issues.push(`World info entry \`${this.infoKey}\` cannot have relations.`);
+        issues.push(`World info entry \`${this.infoKey}\` cannot have relation matchers.`);
       return issues;
     }
 
@@ -189,7 +189,7 @@ const init = (data) => {
     validator() {
       const issues = super.validator();
       if (this.keys.size)
-        issues.push(`World info entry \`${this.infoKey}\` cannot be given a key.`);
+        issues.push(`World info entry \`${this.infoKey}\` cannot be given a tag.`);
       if (this.relations.length || this.keywords.length)
         issues.push(`World info entry \`${this.infoKey}\` cannot have any matchers.`);
       return issues;
@@ -339,7 +339,7 @@ const init = (data) => {
     validator() {
       const issues = super.validator();
       if (this.keys.size > 1)
-        issues.push(`World info entry \`${this.infoKey}\` cannot have more than one key.`);
+        issues.push(`World info entry \`${this.infoKey}\` cannot have more than one tag.`);
       return issues;
     }
 

@@ -26,7 +26,7 @@ const { EngineEntryForWorldInfo } = require("../EngineEntryForWorldInfo");
     validator() {
       const issues = super.validator();
       if (this.keys.size !== 1)
-        issues.push(`World info entry \`${this.infoKey}\` must have exactly one key.`);
+        issues.push(`World info entry \`${this.infoKey}\` must have exactly one tag.`);
       if (this.relations.length === 0 && this.keywords.length === 0)
         issues.push(`World info entry \`${this.infoKey}\` requires at least one matcher.`);
       return issues;

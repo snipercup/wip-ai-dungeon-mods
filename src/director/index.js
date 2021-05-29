@@ -33,14 +33,18 @@ const init = (data) => {
 
       /**
        * The number of history sources this entry was able to match.
-       * At least one history source must match for this entry to obtain a
-       * non-zero score.
        */
       this.historyMatches = 0;
     }
 
     static get forType() { return "Direction"; }
     get targetSources() { return tuple("authorsNote", "history"); }
+
+    get hasMatchers() {
+      if (this.keywords.length > 0) return true;
+      if (this.relations.length > 0) return true;
+      return false;
+    }
 
     validator() {
       const issues = super.validator();
@@ -77,19 +81,30 @@ const init = (data) => {
       // Associates for the Author's Note source, exclusively.
       if (isParamsFor("authorsNote", params)) return true;
 
-      // We want to also check the recent history too.  The latest 5 history
-      // sources should do the trick.  We'll increment `historyMatches` if we
-      // match one.
-      if (params.source >= 5) return false;
-      if (!this.checkKeywords(matcher, params)) return false;
-      if (!this.checkRelations(matcher, params)) return false;
-      this.historyMatches += 1;
+      if (this.hasMatchers) {
+        // We want to also check the recent history too.  The latest 5 history
+        // sources should do the trick.  We'll increment `historyMatches` if we
+        // match one.
+        if (params.source >= 5) return false;
+        if (!this.checkKeywords(matcher, params)) return false;
+        if (!this.checkRelations(matcher, params)) return false;
+        this.historyMatches += 1;
+        this.recordKeyUsage(params);
+      }
+      else if(data.state.$$currentDirectorSelection === this.infoKey) {
+        // Always bring the key into context if it is the current entry.
+        this.recordKeyUsage(params);
+      }
 
-      // But we're still not associating with history entries.
+      // We're not associating with history entries, just matching against them.
       return false;
     }
 
     valuator() {
+      // If it is impossible for the entry to match any history, due to lacking
+      // matchers, we'll just give it a basic score of `10`.
+      if (!this.hasMatchers) return 10;
+
       // Give 10 points for every history entry matched.  If we matched no
       // entries, our score will be `0` and the association will be dropped.
       return 10 * this.historyMatches;
@@ -98,14 +113,16 @@ const init = (data) => {
     postRules() {
       // The last selected entry will be held for 12 actions before an opportunity
       // to change it again is allowed.
-      const { actionCount, state: { $$currentDirectorSection } } = data;
+      const { actionCount, state } = data;
+      const { $$currentDirectorSection } = state;
       const currentSection = (actionCount / 12) | 0;
       checks: {
         if ($$currentDirectorSection == null) break checks;
         if ($$currentDirectorSection !== currentSection) break checks;
         return false;
       }
-      data.state.$$currentDirectorSection = currentSection;
+      state.$$currentDirectorSection = currentSection;
+      state.$$currentDirectorSelection = this.infoKey;
       return true;
     }
   }

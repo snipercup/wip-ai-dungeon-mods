@@ -8,4 +8,10 @@ declare interface GameState {
    * without having to break out a turn-cache.
    */
   $$currentDirectorSection?: number;
+
+  /**
+   * Stores the world-info ID of the last direction entry selected as the
+   * author's note.
+   */
+  $$currentDirectorSelection?: string;
 }

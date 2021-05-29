@@ -1,32 +1,390 @@
 # AI Dungeon Mods
-A WIP mega-repo of various mods I've been putting together.  I will probably break these apart into individual repos at some point in the future.
+A WIP mega-repo of various mods I've been putting together.  I'm shelving this project for now due to AI Dungeon turning into a cesspool of bugs and garbage.
 
-This iteration is based on AID-Bundler and its plugins system, since I was tired of working in huge, long files with no modules.
+This iteration is based on [AID-Bundler](https://github.com/AID-Bundler/aid-bundler) and its plugins system, since I was tired of working in huge, long files with no modules.  That makes it a little less accessible, but...  I had a better time writing it all.
+
+## Installation
+Check the "Releases" above for a ready-to-upload file.  Just chuck the ZIP file into a scenario with the upload button and spend the next hour or two updating world-info with AID's new, buggy-as-duck World Info Library System.
+
+After you start your adventure, I recommend running the following commands:
+* `/context-mode set narrator` will assemble the context sent to the AI so it kind of looks like an audio-book script...  Kinda?  I dunno.  It's the best of the available context modes, in my opinion.
+* `/report-summary-updates on`, if you enable the Adventure Summary feature in the Edit Adventure menu.  This will display a message when ever the summary updates, so you can see how badly the AI got it.
+
+## Installation 2: Install Harder
+If you want to tweak the scripts, customize the build, or what not, you'll need to do a few additional things.
+
+1. Install [NodeJS](https://nodejs.org/en/) for your OS.
+2. Pull or download this repo so you have your own copy.
+2. Using your command-line software of choice, navigate to the directory you placed it.
+3. Execute: `npm install`
+4. Execute: `npm run bundle`
+
+Now you have produced your own build.  If you didn't, then...  *shrugs*  Figure it out.
+
+## Rushed Guide (with examples)
+
+### Oddities
+The code calls the identifiers in State-Engine entries `keys`, but I'll be referring to them as "tags" here, so they're less likely to be confused with "keyword".
+
+I intended to refactor this in code, but whatever.
+
+### Vanilla World-Info Support
+This script should work with vanilla entry's out-of-the-box.  They can also use the new matcher features for both keywords and relations.
+
+Example:
+> **`guard, captain, "boris", :Lelindar`**
+> Captain Boris is a male human who commands Lelindar's city guard.
+
+### Anatomy of a State-Engine Entry
+A typed State-Engine entry is required to introduce tags for the relation matchers.
+
+`$Player[Taleir & Fox & Female](adventurer; rogue)`
+
+There are three parts to a typed entry, the "type", the "tags" and the "matchers".
+
+In this example:
+* The `$Player` portion identifies the type of entry, a "Player" entry.  These are case-sensitive.
+* The `[Taleir & Fox & Female]` portion are the tags, separated by `&`.
+  * They cannot currently contain spaces and are case-sensitive.
+  * It is generally a good idea to capitalize the first letter to make it more obvious its a tag.
+  * Tags can be thought of bringing a named concept into context.
+    * In the example, the concepts of the character Taleir, the vulpine race, and the female sex would be brought into context.
+    * If another entry wants to provide more information about something in context, it would use a relation to match the tag(s) identifying those concepts, IE: `:Fox; :Female` would attempt to match female foxes.
+* The `(adventurer; rogue)` portion are the matchers, two keywords in this case.
+  * Keywords are not case-sensitive but tags used by relations are.
+  * It is a good practice to keep keywords in all-lowercase to differentiate them from tags in relations.
+
+Matchers are separated by a semi-colon (`;`), **NOT** a comma (`,`).  This is intended to save time when AI Dungeon's vanilla world-info matcher tries to match world-info to text, since State-Engine will be redoing all its work, anyways.
+
+All but the type section can be optional, depending on the rules of that type of entry.
+
+### Association Contexts
+State-Engine has a number of association contexts that it supports.  These setup rules about what text an entry can match and how it might be used when selected through that association.
+
+Only these are currently in use:
+* Implicit association (referred to as `"implicit"` in the code) allows only one entry of each type.  For example, if multiple `$Location` entries are provided which can only associate implicitly, only **one** of those entries will be included in the context.
+* Action association (referred to as `"history"` or just a `number` in the code) allows any entry to associate if it matches the action's text.  Multiple entries can create an association, but a roulette based on how well they matched the text is run to select only **one** entry per action.
+  * Actions are processed from oldest to latest actions.  This means that tags brought into context in a later action will not be available to entries that are looking for that tag from an earlier action.
+* Author's Note association (referred to as `"authorsNote"` in the code) will inject the entry's text as the Author's Note when it is selected.
+  * This is used by the `$Direction` entry to do its work.
+
+Currently un-used association types, for those curious:
+* Implicit Reference association (referred to as `"implicitRef"` in the code) allows an entry to match the text of an entry associated through an Implicit association.  This is intended to get a bit meta, allowing an entry to look for text in another entry and provide more context about it.
+  * This largely became irrelevant due to relations.
+  * I was actually thinking of replacing it with another association type that would allow an entry to match on other entries associated through _any_ means, not just implicitly.
+* Player Memory association (referred to as `"playerMemory"` in the code) allows an entry to match on text in the player's pinned memory.
+* Front Memory association (referred to as `"frontMemory"` in the code) will inject the entry's text as the Front Memory when it is selected.
+  * This was intended to implement the Forced Actions module listed in the `TODO.md` file, but I never got around to it.
+
+### Matchers
+
+#### Keywords
+* `<term>` - Terms now match the start of the word only, so your keyword "king" will stop matching "parking".
+* `+<term>` - Inclusive keywords.  Does nothing; only here as the inverse of negated keywords.
+* `-<term>` - Exclusive keywords.  If the term matches a word in the text, it will prevent the entry from associating to the action.
+* `"<term>"` - Exact-match keywords.  Must match the term exactly.
+* `-"<term>"` - Negated exact-match keywords.  Yes, you can combine them!
+
+#### Relations
+* `:<tag>` - The All-Of relation.  All tags with `:` must be in context.
+* `?<tag>` - The Any-Of relation.  At least one tag with `?` must be in context.  Only useful if multiple tags share this relation.
+* `@<tag>` - The Immediate relation.  The tag must be associated with the current action.  It is not allowed to search previous actions for the tag.
+* `!<tag>` - The Negated relation.  The tag cannot be in context.
+
+### The `$Player` Entry
+Use this to provide information about the player's character.  It has a very high selection bias, so it is likely to be provided to the AI on almost every action.
+
+It has the following rules:
+* It requires at least one tag.
+* It supports keyword matchers.
+* It does not support relation matchers.
+* The first tag in the list will also be used as a keyword automatically, so you can get away with only `$Player[Taleir]` and it will automatically infer an exact-match keyword of `"taleir"`.
+* Supports multi-player.  Multi-player mode is enabled if there is more than one named player.
+  * Multi-player mode causes `$Player` entries to need to be associated with action text in order to be included.
+  * In single-player mode, the entry is always associated implicitly.
+
+Example:
+> **`$Player[Taleir & Female & Fox]`**
+> Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
+
+### The `$NPC` Entry
+Use this to provide information about non-player characters.
+
+It has the following rules:
+* It requires at least one tag.
+* It supports keyword matchers.
+* It does not support relation matchers.
+* The first tag in the list will also be used as a keyword automatically, so you can get away with only `$NPC[Riff & Otter]` and it will automatically infer an exact-match keyword of `"riff"`.
+* Each entry has a 1-in-20 chance of being included implicitly to remind the AI of their existence.  If multiple entries are selected in this way, only one will be included implicitly.
+* However, they can still also match through action text.
+
+Example:
+> **`$NPC[Riff & Male & Otter](jeweler)`**
+> Riff is a male otter in Lelindar who owns and operates a jewelry store.
+
+### The `$Location` Entry
+This entry has a very high selection bias.  It is always implicitly associated, which means only one such entry can match at a time.
+
+Good usages include:
+* Telling the AI where the player is.
+* Telling the AI who is with the player.
+* Providing general, but important information about the world.
+
+It has the following rules:
+* Always implicitly associated; only one `$Location` entry will be selected for the context.
+* Does not support tags.
+* Does not support matchers of any sort.
+
+Examples:
+_Indicating the player's location._
+> **$Location**
+> Taleir is currently in Lelindar's trading district.
+
+_Indicating important world information._
+> **$Location**
+> Taleir lives in a world where magic exists, but is largely forgotten to the denizens on the surface.
+
+### The `$Lore` Entry
+This entry is intended to provide general, static information about the world.  It matches the text of actions and if it associates with an action, its entry may appear in the context.  It has a relatively low selection bias.
+
+Good usages include:
+* Providing additional background information or general goals for characters.
+* Providing information about locations in the world.
+* Providing information on your world's races, monsters, starship types, etc.
+
+Tips and tricks:
+* For locations within a city, is usually detrimental to relate the location to the city it is in.  It is a bit uncommon for the city's name to be mentioned to bring it into context so that the location within the city can satisfy its relation.  Your milage may vary.
+
+It has the following rules:
+* Associates only with action text.
+* Supports zero or more tags.
+* Requires at least one matcher of any type.
+* If the entry has no inclusive keywords, it compares the entry's text with the action's text to determine a score.  The more words the two have in common and the less common those words are in _all_ the text available for analysis, the higher the score will be.
+* Receives a score boost if the `$Lore` entry is related to a _later_ `$State` entry.
+  * This increases the chances that this entry can add more context to the related `$State` entry.
+
+Examples:
+_Establishing a race in the world._
+> **`$Lore[Fox & BeastFolk](fox, vulpine, vixen)`**
+> Foxes are a sentient digitigrade people with the features of a fox.
+
+_Embellishing a race through a relation._
+> **`$Lore(:Fox)`**
+> Foxes have fur of earthy tones, often with white fur on their stomach.
+
+_Establishing a location in the world._
+> **`$Lore[Lelindar]("lelindar", city)`**
+> Lelindar is a small city largely populated by humans.
+
+### The `$State` Entry
+State entries provide immediately important information about the world and its concepts.  It is not a bad idea to manually introduce new `$State` entries as the story develops, so the AI knows what's up.  It has a very high selection bias.
+
+Good usages include:
+* Providing information about what a character is carrying with them.
+* Providing the AI with stateful information, like what spells are currently influencing a character.
+* Updating the AI on the progress of goals for NPCs (for players, it's usually best to use the pinned memory or `$Location` entry).
+* When used carefully, you can also use this entry to pressure the story toward a specific state.
+  * For instance, my test scenario started you in a city, but the scenario was intended to get you spelunking in some tunnels to battle the big-bad.  `$State` entries that detect when the city is mentioned sprinkled information about the tunnels so the AI would gravitate in that direction.
+
+It has the following rules:
+* Can have at most one tag.
+* Requires at least one matcher of any type.
+* Only **two** of these entries can be selected at a time, favoring entries associated closest to the most recent actions.
+  * This is to help keep `$State` entries from dominating the context, as they have _very_ heavy selection weighting.
+* When matching an action, it only searches the previous two actions for related tags, meaning the mention must be very close in context to be associated.
+
+Examples:
+_Informing the AI about a character's state._
+> **`$State(:Taleir)`**
+> Taleir has been hit by a stupify spell.  She will have a hard time understanding things said to her.
+
+_Informing the AI about something interesting about a character, to bait a specific interaction._
+> **`$State(:Riff)`**
+> Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
+
+_Informing the AI about happenings at a location.  Let the race wars begin!_
+> **`$State(:Lelindar; :BeastFolk)`**
+> There has been upheaval in Lelindar recently with harsh new restrictions placed on where beast-folk may go and how they may address themselves to humans.
+
+### The `$Direction` Entry
+This entry dynamically sets the Author's Note used in the context.  It attempts to associated with the latest 5 entries in the action history and if successful, will be selectable as the Author's Note text.
+
+Good usages include:
+* Baiting the AI into setting up particular scenes.
+* Baiting the AI to introduce or involve particular characters.
+* Bringing the AI's focus to certain details or character states.
+* And of course, trying to get the AI to be biased toward a writing style.
+
+It has the following rules:
+* Can have at most one tag.
+* Can have zero or more matchers of any type.
+  * If the entry was given a tag, it has no relation matchers, and an entry of another type shares that tag, the entry will be implicitly related to that tag.
+  * If the entry has no matchers, it will still associate with a low chance of selection.
+* Checks only the latest 5 actions for matches.
+* If selected, the entry's text will be used as the Author's Note for the next 12 turns, giving the AI time to act upon it before it changes again.
+
+Examples:
+_The classic._
+> **`$Direction`**
+> Be descriptive.
+
+_Baiting a scene._
+> **`$Direction(?RatGang; ?Guard)`**
+> The sounds of rowdy individuals can be heard nearby.
+
+_Trying to bring another character into play.  The tag will bring their entries into context._
+> **`$Direction[Riff](:Taleir; :Lelindar; !Riff)`**
+> Introduce Riff, an otter jeweler, into this scene.
+
+### The `$Class` Entry
+This entry type does not provide its text to the context.  It's instead intended to reduce repetition in world-info by grouping collections of keywords into a single classification.
+
+You do need to provide text for the entry, though, or else AI Dungeon will discard the entry.  Or at least, it used to before the World-Info library was introduced.  Who knows what it will do now!
+
+It has the following rules:
+* Must have exactly one tag.
+* It must have at least one matcher of any type.
+* Relations will only match if its related tags are associated with the _current_ action being matched.
+  * It will not look at past actions for related tags, even if you are not using an Immediate relation.
+* Its text will not be used in the context.
+  * It is used only to generate a tag for other entries to relate to.
+
+Examples:
+_Creating a classification for a gender._
+> **`$Class[Feminine](female; feminine; woman; girl)`**
+> A class for generally feminine terms.
+
+_Creating a classification for race specific gender terms._
+> **`$Class[FeminineFox](vixen)`**
+> A class for feminine vulpine.
+
+_Creating an all-encompassing classification for a gender-word._
+> **`$Class[Female](?Feminine; ?FeminineFox; ?FeminineRabbit)`**
+> A class for any female.
+
+_Using the class to match a female for a character quirk._
+> **`$State(@Female; :Riff)`**
+> Riff gets anxious and nervous in the presence of females, though he appreciates their company.
+
+### Tips and Tricks
+
+* Keep your world-info entries short.  Break longer entries apart into multiple entries if possible and rely on State-Engine to pick the most relevant information for the story.
+* `$Lore` entries will have a hard time relating to unique tags from `$State` entries, since they tend to match so close to the latest action, where there may not be enough entries remaining to reliably associate.
+
+## Script Modules
+Here are brief descriptions of all the modules available in the repo.
+
+### State-Engine
+Replaces the World-Info system with one that has intelligence behind it.  It was created to build a dynamic player memory so you don't have to put as much into your pin-memory, trying to be straight-forward enough to add entries to your adventure on the fly.
+
+* Works with vanilla entries; just throw it in to get some benefits.
+* Improves keywords with leading-match, exact-match (`"<term>"`), and negation (`-<term>`).
+* Relate your WI to other WI so they can add additional context for the AI.
+* Extend it with "State Modules" providing new entry types.
+* Sorts selected WI in a manner that is somewhat coherent.
+
+Provides only two entry types:
+* `$Class` - To create classifications of things so you don't have to copy and paste so many god damn keywords.
+* A fall-back entry to support vanilla world-info.  It does nothing special, but still supports the keyword improvements and relations.
+
+Commands:
+* `/state-engine report` displays information about what world-info is in context after the last action and how well they scored.
+  * It does not mean that the world-info's text was presented to the AI; it will try to fit in as many entries as it can, but the space is very limited and some entries may have been dropped.
+  * Use the Script Diagnostics function (the brain icon) in the Scenario Scripts page of the Scenario Editor to view what was actually sent to the AI.
+  * This is a debug command, but it can help you tune your world-info entries a bit.
+* `/state-engine reset` wipes all the internal caches it maintains in the `state` object.
+
+### Deep-State
+This is the bulk of what makes State-Engine work.  The entry types it provides have specialized uses that try to build the best context memory for the latest state of the story.
+
+Adds the following State-Engine entry types:
+* `$Player` - To describe player characters.
+* `$NPC` - To describe other characters in your adventure.
+* `$Location` - To describe the player's current location or provide context to the world.
+* `$Lore` - To describe your world in a general manner.
+* `$State` - To describe important and changing state for any of these previous entries.
+
+### Director
+Adds a single State0Engine entry type, `$Direction`, that dynamically injects its text into the Author's Note when it matches text in the action history.
+
+### Context-Mode
+A system for providing different ways to assemble the context sent to the AI.  It does nothing on its own.
+
+Commands:
+* `/context-mode list` lists all installed context-mode modules.
+* `/context-mode set <module-name>` enables a context mode.
+* `/context-mode current` displays the currently enabled context mode.
+
+### Common Context-Modes
+A Context-Mode module that provides a couple of similarly structured contexts.  They largely differ in what words they use when presenting certain kinds of material.
+
+These modes work best in third-person mode.
+
+Provides the following context-modes:
+* `forward` - Designed to mimic the forward section of fan-fiction.  Uses terms like "Reader's Notes" and "Author's Note".  The AI may, or may not, produce more fan-fiction-like output when this is enabled.
+* `narrator` - Designed to mimic an audio-book script or something.  I dunno!  It was an experiment that kind of bore fruit!  Uses terms like "Notes" and "Direction".  This is currently my favorite.
+
+### Annotated Context-Mode
+A Context-Mode module named `annotated` that presents information to the AI with a preceding tag describing what that information is supposed to be.  It was one of my first attempts at a custom context and is...  Well, it was good until Latitude lobotomized the AI.
+
+It probably works well in both second-person and third-person modes.
+
+### With-Memory
+Provides some player-memory enhancements.
+
+* It can extract the AI-generated adventure summary from the player memory.  The summary will be available at `AIDData.summary`.  It will still include the "The story so far:" bit.
+* It will also clean out the comment that separates the player's memory from the summary.
+* It can also store summaries for rewind, however there is no API to _change_ the summary for the player, so this is just to help it generate things using the old summary when the player rewinds.  The player will still need to manually remove portions of the summary that may no longer be relevant at the new point in the story.
+
+Commands:
+* `/set-authors-note <text>` sets an author's note.  The Author's Note field in the Pin menu doesn't work and this text is not available to scripts, meaning this is a way you can set it by hand.
+  * Note: the `$Direction` State-Engine entries will stop working if you set an author's note, as State-Engine is designed to not interfere with other scripts that may be doing their own thing.
+  * You can clear the author's note by running this command without providing text.  This sets it to an empty string.
+* `/report-summary-updates` tells you if it will report summary updates.
+* `/report-summary-updates on` enables a message that will show when the adventure summary changes.  This includes both the player changing it and the AI changing it, as it has no idea who was responsible.
+* `/report-summary-updates off` disables the update message.
+* `/report-summary` displays the current summary as a message.
+* `/reset-with-memory` clears With-Memory's managed caches.
+
+I never upgraded this module with the `PatternCommand` to namespace the commands.  Sorry!
+
+### World-Control
+Provides command for working with world-info.  Primarily, I used it to show and hide entries for debugging.
+
+_Due to Latitude incompetence, commands that show and hide entries are likely broken until they finally fix the World-Info scripting API._
+
+Commands:
+* `/world-control show` reveals world-info that were hidden by the scenario when the adventure first began.
+* `/world-control hide` does the inverse of `show`, re-hiding any entries that were revealed.  It will leave entries that did not exist when the scenario started alone, however.
+* `/world-control show index <n>` forcefully shows the World-Info at `worldEntries[n]`.
+* `/world-control hide index <n>` is the opposite of `show index <n>`.
+* `/world-control report <n>` dumps the world-info at `worldEntries[n]` to console.
+* `/world-control rebuild` rebuilds its internal cache of hidden scenarios based on the current state of all entries in the `worldEntries` array.  So, if you `show` and then `rebuild` you can't `hide` anymore.
+* `/world-control reset` just wipes its internal cache.  This will force it to `rebuild` when the input modifier next executes.
+
+### Turn-Cache
+A utility module that provides per-action caching capabilities.
+
+### Stemming
+A utility that provides a Lancaster word stemmer and TF-IDF capability for comparing and querying all the text currently in context.
+
+Deep-State uses this to give a better score to `$Lore` entries when they have no inclusive keywords but are matched through a relation.  It was also intended to be used to implement the Total-Recall module in `TODO.md`.
+
+### Commands
+Provides two AID-Bundler `Command` types:
+* `SimpleCommand` just allows you to return a `string`, which will be set to `state.message`.  You can also return `undefined` to not set a message.
+* `PatternCommand` allows you to list out a bunch of commands based on an exact-match `string` or a `RegExp` that, if matched, will trigger the provided command handler.  The command handlers function like `SimpleCommand`, allowing you to return a message.  Supports `Object` dictionaries, but best with a `Map`.
+
+### Utils
+Before AID-Bundler and the ability to just use NPM modules, I wrote a bunch of common utilities that are used by many of these modules.
+
+Most notably, it includes many functions for performing operations on `Iterable` objects, including `chain` which sets up a pipeline to manipulate them.  This has been very handy for doing the text processing needed for all this, as Lodash is inconsistent with its own handling of `Iterable`.
+
+It's probably not super efficient, but who cares.  It gets the job done.
+
+This is used by almost every other module.
 
 ## License
-_Released under the terms of The Unlicense; do with this as you please, but pull-requests to contribute are welcome and help keep everything centralized for others._
+_Released under the terms of The Unlicense; do with this as you please._
 
-This is free and unencumbered software released into the public domain.
-
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
-
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-
-For more information, please refer to <http://unlicense.org/>
+See the `LICENSE` file for more details.

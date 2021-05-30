@@ -91,7 +91,7 @@ const init = (data) => {
         this.historyMatches += 1;
         this.recordKeyUsage(params);
       }
-      else if(data.state.$$currentDirectorSelection === this.infoKey) {
+      else if(data.state.$$currentDirectorSelection === this.entryId) {
         // Always bring the key into context if it is the current entry.
         this.recordKeyUsage(params);
       }
@@ -122,7 +122,7 @@ const init = (data) => {
         return false;
       }
       state.$$currentDirectorSection = currentSection;
-      state.$$currentDirectorSelection = this.infoKey;
+      state.$$currentDirectorSelection = this.entryId;
       return true;
     }
   }

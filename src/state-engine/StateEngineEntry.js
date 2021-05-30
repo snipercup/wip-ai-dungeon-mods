@@ -1,4 +1,4 @@
-const { dew, tuple2, getText } = require("../utils");
+const { getText } = require("../utils");
 const { isParamsFor, isParamsTextable, stateDataString } = require("./utils");
 
 /**

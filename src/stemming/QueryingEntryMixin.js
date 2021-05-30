@@ -50,7 +50,7 @@ exports.makeQuerying = (data, Klass) => {
       if (typeof storedText === "string") return storedText;
       if (!this.text.trim()) return "";
       const result = stemText(this.text);
-      this[$$stemText] = result
+      this[$$stemText] = result;
       return result;
     }
 

@@ -288,16 +288,18 @@ It is enabled by default at the start of the adventure, but can be enabled expli
 `/context-mode set vanilla`
 
 #### Example Output
-> Taleir is a female fox and a rogue. She has just returned to her home town of Lelindar after several months on a job.
-> Foxes have fur of earthy tones, often with white fur on their stomach.
-> Taleir is currently in Lelindar's trading district.
-> Riff has secretly been practicing tailoring. He's a bit bashful about his current attempts and keeps them hidden away.
-> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans. Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
-> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
-> [Author's Note: Be descriptive.]
-> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
-> "There you are," he says. "I was wondering when you'd get back."
-> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
+Taleir is a female fox and a rogue. She has just returned to her home town of Lelindar after several months on a job.
+Foxes have fur of earthy tones, often with white fur on their stomach.
+Taleir is currently in Lelindar's trading district.
+Riff has secretly been practicing tailoring. He's a bit bashful about his current attempts and keeps them hidden away.
+The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans. Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+[Author's Note: Be descriptive.]
+Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+"There you are," he says. "I was wondering when you'd get back."
+Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
 
 ### Narrator
 A custom context-mode that attempts to mimic a narrator's script.
@@ -308,19 +310,21 @@ It can be enabled with the following command:
 `/context-mode set narrator`
 
 #### Example Output
-> Narrator's Notes:
-> • Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
-> • Foxes have fur of earthy tones, often with white fur on their stomach.
-> • Riff is a male otter in Lelindar who owns and operates a jewelry store.
-> • Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
-> • Taleir is currently in Lelindar's trading district.
-> 
-> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
-> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
-> [Direction: Be descriptive.]
-> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
-> "There you are," he says. "I was wondering when you'd get back."
-> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
+Narrator's Notes:
+• Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
+• Foxes have fur of earthy tones, often with white fur on their stomach.
+• Riff is a male otter in Lelindar who owns and operates a jewelry store.
+• Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
+• Taleir is currently in Lelindar's trading district.
+
+The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+[Direction: Be descriptive.]
+Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+"There you are," he says. "I was wondering when you'd get back."
+Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
 
 ### Forward
 A custom context-mode that attempts to mimic the forward section of your typical fan-fiction.  It is similar to Narrator, but varies slightly in terms it uses and how it breaks thing apart.
@@ -331,19 +335,21 @@ It can be enabled with the following command:
 `/context-mode set forward`
 
 #### Example Output
-> Reader's Notes:
-> • Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
-> • Foxes have fur of earthy tones, often with white fur on their stomach.
-> • Riff gets anxious and nervous in the presence of females, though he appreciates their company.
-> • Taleir is currently in Lelindar's trading district.
-> • Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
-> --------
-> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
-> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
-> [Author's Note: Be descriptive.]
-> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
-> "There you are," he says. "I was wondering when you'd get back."
-> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
+Reader's Notes:
+• Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
+• Foxes have fur of earthy tones, often with white fur on their stomach.
+• Riff gets anxious and nervous in the presence of females, though he appreciates their company.
+• Taleir is currently in Lelindar's trading district.
+• Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
+--------
+The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+[Author's Note: Be descriptive.]
+Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+"There you are," he says. "I was wondering when you'd get back."
+Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
 
 ### Annotated
 A custom context-mode that simply annotates each type of thing emitted in the context.
@@ -354,21 +360,23 @@ It can be enabled with the following command:
 `/context-mode set annotated`
 
 #### Example Output
-> Style:
-> Be descriptive.
-> Notes:
-> • Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
-> • Foxes have fur of earthy tones, often with white fur on their stomach.
-> • Foxes are a sentient digitigrade people with the features of a fox.
-> • Riff is a male otter in Lelindar who owns and operates a jewelry store.
-> • Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
-> • Taleir is currently in Lelindar's trading district.
-> Story:
-> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in > criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
-> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
-> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
-> "There you are," he says. "I was wondering when you'd get back."
-> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
+Style:
+Be descriptive.
+Notes:
+• Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
+• Foxes have fur of earthy tones, often with white fur on their stomach.
+• Foxes are a sentient digitigrade people with the features of a fox.
+• Riff is a male otter in Lelindar who owns and operates a jewelry store.
+• Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
+• Taleir is currently in Lelindar's trading district.
+Story:
+The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in > criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+"There you are," he says. "I was wondering when you'd get back."
+Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+```
 
 ## Script Modules
 Here are brief descriptions of all the modules available in the repo.

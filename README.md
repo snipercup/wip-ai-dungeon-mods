@@ -82,10 +82,10 @@ Currently un-used association types, for those curious:
 
 #### Keywords
 * `<term>` - Your basic keyword.  Terms now match the start of the word only, so your keyword "king" will stop matching "parking".
-* `+<term>` - Inclusive keywords.  Does nothing; only here as the inverse of negated keywords.
+* `+<term>` - Inclusive keywords.  Does nothing; only here as the inverse of exclusive keywords.
 * `-<term>` - Exclusive keywords.  If the term matches a word in the text, it will prevent the entry from associating to the action.
 * `"<term>"` - Exact-match keywords.  Must match the term exactly.
-* `-"<term>"` - Negated exact-match keywords.  Yes, you can combine them!
+* `-"<term>"` - Exclusive exact-match keywords.  Yes, you can combine them!
 
 #### Relations
 * `:<tag>` - The All-Of relation.  All tags with `:` must be in context.
@@ -162,23 +162,36 @@ Tips and tricks:
 It has the following rules:
 * Associates only with action text.
 * Supports zero or more tags.
-* Requires at least one matcher of any type.
+* Supports zero or more matchers of any type.
+  * It has a special ability regarding matchers.  See below.
 * If the entry has no inclusive keywords, it compares the entry's text with the action's text to determine a score.  The more words the two have in common and the less common those words are in _all_ the text available for analysis, the higher the score will be.
 * Receives a score boost if the `$Lore` entry is related to a _later_ `$State` entry.
   * This increases the chances that this entry can add more context to the related `$State` entry.
 
+This entry has a special ability when making a lot of `$Lore` entries for the same concept.  A `$Lore` entry that has no _inclusive_ matchers (it can have exclusive/negated matchers) will attempt to locate another `$Lore` entry with all the same keys that it has that _does_ have inclusive matchers.
+
+If it manages to find one, **and only one**, such entry, it will duplicate those matchers to itself.
+
+This allows you to define a single entry for something and then expand upon it across several entries without having to copy-and-paste its matchers.
+
+_Note: There is no error or validation message shown if a `$Lore` entry fails to find a compatible entry, at this time.  In this case, the entry will just never match anything._
+
 Examples:
+_Establishing a location in the world._
+> **`$Lore[Lelindar]("lelindar"; city)`**
+> Lelindar is a small city largely populated by humans.
+
 _Establishing a race in the world._
 > **`$Lore[Fox & BeastFolk](fox; vulpine; vixen)`**
 > Foxes are a sentient digitigrade people with the features of a fox.
 
-_Embellishing a race through a relation._
-> **`$Lore(:Fox)`**
+_Embellishing the race with matcher duplication.  It will get the keywords from the previous example._
+> **`$Lore[Fox & BeastFolk]`**
 > Foxes have fur of earthy tones, often with white fur on their stomach.
 
-_Establishing a location in the world._
-> **`$Lore[Lelindar]("lelindar"; city)`**
-> Lelindar is a small city largely populated by humans.
+_You can still use relations with no tag, as well._
+> **`$Lore(:Fox; :Lelindar)`**
+> The population of foxes in Lelindar is rather limited, as foxes are not normally attracted to city life.
 
 ### The `$State` Entry
 State entries provide immediately important information about the world and its concepts.  It is not a bad idea to manually introduce new `$State` entries as the story develops, so the AI knows what's up.  It has a very high selection bias.

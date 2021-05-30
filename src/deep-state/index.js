@@ -220,16 +220,9 @@ const init = (data) => {
     static get forType() { return "Lore"; }
     get targetSources() { return tuple("history"); }
 
-    validator() {
-      const issues = super.validator();
-      if (this.keywords.length === 0 && this.relations.length === 0)
-        issues.push(`World info entry \`${this.infoKey}\` must have at least one matcher.`);
-      return issues;
-    }
-
     /**
      * Copies the matchers from another `Lore` entry when this entry lacks positive
-     * matchers and it shares all the same key with exactly one other lore entry that
+     * matchers and it shares all the same keys with exactly one other lore entry that
      * only has positive matchers.
      * 
      * Negative matchers are not considered for this entry, allowing you to exclude

@@ -7,7 +7,7 @@ This iteration is based on [AID-Bundler](https://github.com/AID-Bundler/aid-bund
 Check the "Releases" above for a ready-to-upload file.  Just chuck the ZIP file into a scenario with the upload button and spend the next hour or two updating world-info with AID's new, buggy-as-duck World Info Library System.
 
 After you start your adventure, I recommend running the following commands:
-* `/context-mode set narrator` will assemble the context sent to the AI so it kind of looks like an audio-book script...  Kinda?  I dunno.  It's the best of the available context modes, in my opinion.
+* `/context-mode set narrator` will assemble the context sent to the AI so it kind of looks like an audio-book script...  Kinda?  You may want to pass it up if you prefer second-person over third-person.  It's the best of the available context modes, in my opinion.
 * `/report-summary-updates on`, if you enable the Adventure Summary feature in the Edit Adventure menu.  This will display a message when ever the summary updates, so you can see how badly the AI got it.
 
 ## Installation 2: Install Harder
@@ -29,7 +29,7 @@ The code calls the identifiers in State-Engine entries `keys`, but I'll be refer
 I intended to refactor this in code, but whatever.
 
 ### Vanilla World-Info Support
-This script should work with vanilla entry's out-of-the-box.  They can also use the new matcher features for both keywords and relations.
+This script should work with vanilla entries out-of-the-box.  They can also use the new matcher features for both keywords and relations.
 
 Example:
 > **`guard, captain, "boris", :Lelindar`**
@@ -48,8 +48,8 @@ In this example:
   * They cannot currently contain spaces and are case-sensitive.
   * It is generally a good idea to capitalize the first letter to make it more obvious its a tag.
   * Tags can be thought of bringing a named concept into context.
-    * In the example, the concepts of the character Taleir, the vulpine race, and the female sex would be brought into context.
-    * If another entry wants to provide more information about something in context, it would use a relation to match the tag(s) identifying those concepts, IE: `:Fox; :Female` would attempt to match female foxes.
+    * In the example, if this entry were associated with any text, the concepts of the character Taleir, the vulpine race, and the female sex would be brought into context.
+    * If another entry wants to provide more information about something in context, it would use a relation to match the tag(s) identifying those concepts, IE: `(:Fox; :Female)` would attempt to match female foxes.
 * The `(adventurer; rogue)` portion are the matchers, two keywords in this case.
   * Keywords are not case-sensitive but tags used by relations are.
   * It is a good practice to keep keywords in all-lowercase to differentiate them from tags in relations.
@@ -58,8 +58,10 @@ Matchers are separated by a semi-colon (`;`), **NOT** a comma (`,`).  This is in
 
 All but the type section can be optional, depending on the rules of that type of entry.
 
-### Association Contexts
-State-Engine has a number of association contexts that it supports.  These setup rules about what text an entry can match and how it might be used when selected through that association.
+### Association Sources
+State-Engine has a number of association sources that it supports.  These setup rules about what text an entry can match and how it might be used when selected through that association.
+
+Some entries may associate with multiple sources or just peek at them for information, but not actually create an association.
 
 Only these are currently in use:
 * Implicit association (referred to as `"implicit"` in the code) allows only one entry of each type.  For example, if multiple `$Location` entries are provided which can only associate implicitly, only **one** of those entries will be included in the context.
@@ -79,7 +81,7 @@ Currently un-used association types, for those curious:
 ### Matchers
 
 #### Keywords
-* `<term>` - Terms now match the start of the word only, so your keyword "king" will stop matching "parking".
+* `<term>` - Your basic keyword.  Terms now match the start of the word only, so your keyword "king" will stop matching "parking".
 * `+<term>` - Inclusive keywords.  Does nothing; only here as the inverse of negated keywords.
 * `-<term>` - Exclusive keywords.  If the term matches a word in the text, it will prevent the entry from associating to the action.
 * `"<term>"` - Exact-match keywords.  Must match the term exactly.
@@ -87,7 +89,9 @@ Currently un-used association types, for those curious:
 
 #### Relations
 * `:<tag>` - The All-Of relation.  All tags with `:` must be in context.
-* `?<tag>` - The Any-Of relation.  At least one tag with `?` must be in context.  Only useful if multiple tags share this relation.
+* `?<tag>` - The Any-Of relation.  At least one tag with `?` must be in context.
+  * Only useful if multiple tags share this relation type, IE: `(?Taleir; ?Riff)` wants at least one of these two tags.
+  * If it manages to get both tags into context, its score will be increased.
 * `@<tag>` - The Immediate relation.  The tag must be associated with the current action.  It is not allowed to search previous actions for the tag.
 * `!<tag>` - The Negated relation.  The tag cannot be in context.
 
@@ -165,7 +169,7 @@ It has the following rules:
 
 Examples:
 _Establishing a race in the world._
-> **`$Lore[Fox & BeastFolk](fox, vulpine, vixen)`**
+> **`$Lore[Fox & BeastFolk](fox; vulpine; vixen)`**
 > Foxes are a sentient digitigrade people with the features of a fox.
 
 _Embellishing a race through a relation._
@@ -173,7 +177,7 @@ _Embellishing a race through a relation._
 > Foxes have fur of earthy tones, often with white fur on their stomach.
 
 _Establishing a location in the world._
-> **`$Lore[Lelindar]("lelindar", city)`**
+> **`$Lore[Lelindar]("lelindar"; city)`**
 > Lelindar is a small city largely populated by humans.
 
 ### The `$State` Entry
@@ -270,6 +274,101 @@ _Using the class to match a female for a character quirk._
 
 * Keep your world-info entries short.  Break longer entries apart into multiple entries if possible and rely on State-Engine to pick the most relevant information for the story.
 * `$Lore` entries will have a hard time relating to unique tags from `$State` entries, since they tend to match so close to the latest action, where there may not be enough entries remaining to reliably associate.
+* If playing in second-person mode, you may want to setup your Player entry like this: `$Player[Taleir](you)`
+
+## Context-Mode
+A context-mode applies a custom transformation to the context sent to the AI.  You have four to choose from in this package.
+
+The story generated below is using the entries provided as examples in the guide.  I did not invest a great deal into it, so it's kind of bland, but hopefully gets the idea across!
+
+### Vanilla
+Very similar to AI Dungeon's standard context output.  However, it still applies more intelligent sorting and grouping of entries.
+
+It is enabled by default at the start of the adventure, but can be enabled explicitly with:
+`/context-mode set vanilla`
+
+#### Example Output
+> Taleir is a female fox and a rogue. She has just returned to her home town of Lelindar after several months on a job.
+> Foxes have fur of earthy tones, often with white fur on their stomach.
+> Taleir is currently in Lelindar's trading district.
+> Riff has secretly been practicing tailoring. He's a bit bashful about his current attempts and keeps them hidden away.
+> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans. Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+> [Author's Note: Be descriptive.]
+> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+> "There you are," he says. "I was wondering when you'd get back."
+> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+
+### Narrator
+A custom context-mode that attempts to mimic a narrator's script.
+
+You will probably get the most out ot if with third-person stories in "Story" mode.
+
+It can be enabled with the following command:
+`/context-mode set narrator`
+
+#### Example Output
+> Narrator's Notes:
+> • Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
+> • Foxes have fur of earthy tones, often with white fur on their stomach.
+> • Riff is a male otter in Lelindar who owns and operates a jewelry store.
+> • Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
+> • Taleir is currently in Lelindar's trading district.
+> 
+> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+> [Direction: Be descriptive.]
+> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+> "There you are," he says. "I was wondering when you'd get back."
+> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+
+### Forward
+A custom context-mode that attempts to mimic the forward section of your typical fan-fiction.  It is similar to Narrator, but varies slightly in terms it uses and how it breaks thing apart.
+
+You will probably get the most out ot if with third-person stories in "Story" mode.
+
+It can be enabled with the following command:
+`/context-mode set forward`
+
+#### Example Output
+> Reader's Notes:
+> • Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
+> • Foxes have fur of earthy tones, often with white fur on their stomach.
+> • Riff gets anxious and nervous in the presence of females, though he appreciates their company.
+> • Taleir is currently in Lelindar's trading district.
+> • Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
+> --------
+> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+> [Author's Note: Be descriptive.]
+> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+> "There you are," he says. "I was wondering when you'd get back."
+> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
+
+### Annotated
+A custom context-mode that simply annotates each type of thing emitted in the context.
+
+It is the oldest of my custom contexts and mostly just kept around as an additional test of the system.  Feel free to give it a try, though.
+
+It can be enabled with the following command:
+`/context-mode set annotated`
+
+#### Example Output
+> Style:
+> Be descriptive.
+> Notes:
+> • Taleir is a female fox and a rogue.  She has just returned to her home town of Lelindar after several months on a job.
+> • Foxes have fur of earthy tones, often with white fur on their stomach.
+> • Foxes are a sentient digitigrade people with the features of a fox.
+> • Riff is a male otter in Lelindar who owns and operates a jewelry store.
+> • Riff has secretly been practicing tailoring.  He's a bit bashful about his current attempts and keeps them hidden away.
+> • Taleir is currently in Lelindar's trading district.
+> Story:
+> The protagonist Taleir has just returned to her home of Lelindar, a city mostly populated by humans.  Tensions are high between the humans and the beast-folk they look down upon. The beast-folk of the area have begun banding together in response to a rise in > criminal activity from humans, and they're also becoming more openly hostile towards the human government, who they believe to be failing to look after their interests.
+> Taleir has just passed through the city's gates and entered the trade district. She is hurrying home, where her husband Riff is expecting her. The two of them are keeping the fact that they are married a secret from most people, as otters and foxes are not fond of their relationship.
+> Taleir's last job had kept her away from him for so long, but she can sense a tense atmosphere as she walks through the streets.  It unnerves her a bit as she approaches Riff's little shop. As she opens the door and enters, Riff himself comes out of his room, which consists of a small bed and a chest of drawers. He smiles when he sees her.
+> "There you are," he says. "I was wondering when you'd get back."
+> Taleir looks about wearily before sneaking a kiss at her husband.  "I'm sorry.  It was a bit more daunting than I realized..."
 
 ## Script Modules
 Here are brief descriptions of all the modules available in the repo.
@@ -322,7 +421,7 @@ These modes work best in third-person mode.
 
 Provides the following context-modes:
 * `forward` - Designed to mimic the forward section of fan-fiction.  Uses terms like "Reader's Notes" and "Author's Note".  The AI may, or may not, produce more fan-fiction-like output when this is enabled.
-* `narrator` - Designed to mimic an audio-book script or something.  I dunno!  It was an experiment that kind of bore fruit!  Uses terms like "Notes" and "Direction".  This is currently my favorite.
+* `narrator` - Designed to mimic an audio-book script or something.  I dunno!  It was an experiment that kind of bore fruit!  Uses terms like "Narrator's Notes" and "Direction".  This is currently my favorite.
 
 ### Annotated Context-Mode
 A Context-Mode module named `annotated` that presents information to the AI with a preceding tag describing what that information is supposed to be.  It was one of my first attempts at a custom context and is...  Well, it was good until Latitude lobotomized the AI.

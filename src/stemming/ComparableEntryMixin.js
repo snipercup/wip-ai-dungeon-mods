@@ -56,11 +56,7 @@ exports.makeComparable = (data, Klass) => {
 
     /** The stemmed text for this entry. */
     get stemText() {
-      const value = this.stemMap.get(this.stemKey);
-      if (typeof value === "string") return value;
-
-      // This should not occur, and if it does, shut... down... EVERYTHING!
-      throw new Error(`No stemming data for world-info \`${this.worldInfo.id}\` exists.`);
+      return this.stemMap.get(this.stemKey) ?? "";
     }
 
     /**
@@ -70,6 +66,9 @@ exports.makeComparable = (data, Klass) => {
      * @returns {number} 
      */
     compareAgainst(otherEntry) {
+      // Sanity check to prevent an error.  Only compare if this entry has terms to compare.
+      if (!this.stemText) return 0;
+
       /** @type {Stemming.AnyKey | undefined} */
       const otherName = shutUpTS(
         dew(() => {

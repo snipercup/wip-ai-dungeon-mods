@@ -60,6 +60,8 @@ exports.makeQuerying = (data, Klass) => {
      * @returns {Array<[Stemming.AnyKey, number]>}
      */
     queryOnAll() {
+      // Sanity check to prevent an error.  Only query if this entry has terms.
+      if (!this.stemText) return [];
       return shutUpTS(this.corpus.getResultsForQuery(this.stemText));
     }
 

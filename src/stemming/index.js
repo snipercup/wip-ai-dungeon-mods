@@ -112,6 +112,7 @@ exports.compileEntries = (data, forContext = false) => {
     .concat(allWorldInfo)
     .concat(otherSources)
     .map(([key, text]) => tuple(key, exports.stemText(text)))
+    .filter(([_, text]) => Boolean(text))
     .value();
   
   const stemMap = new Map(compiledData);

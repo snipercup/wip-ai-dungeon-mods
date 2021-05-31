@@ -4,11 +4,11 @@ A WIP mega-repo of various mods I've been putting together.  I'm shelving this p
 This iteration is based on [AID-Bundler](https://github.com/AID-Bundler/aid-bundler) and its plugins system, since I was tired of working in huge, long files with no modules.  That makes it a little less accessible, but...  I had a better time writing it all.
 
 ## Installation
-Check the "Releases" above for a ready-to-upload file.  Just chuck the ZIP file into a scenario with the upload button and spend the next hour or two updating world-info with AID's new, buggy-as-duck World Info Library System.
+Check the [Releases page](https://github.com/TaleirOfDeynai/wip-ai-dungeon-mods/releases) for a ready-to-use ZIP file.  Just upload the ZIP file into a scenario with the upload button and spend the next hour or two updating world-info with AID's new, buggy-as-duck World Info Library System.
 
 After you start your adventure, I recommend running the following commands:
-* `/context-mode set narrator` will assemble the context sent to the AI so it kind of looks like an audio-book script...  Kinda?  You may want to pass it up if you prefer second-person over third-person.  It's the best of the available context modes, in my opinion.
-* `/report-summary-updates on`, if you enable the Adventure Summary feature in the Edit Adventure menu.  This will display a message when ever the summary updates, so you can see how badly the AI got it.
+* `/context-mode set narrator` will assemble the context sent to the AI so it kind of looks like an audio-book script...  Kinda?  You may want to pass it up if you prefer second-person over third-person, but it's the best of the available context modes, in my opinion.
+* `/report-summary-updates on`, if you enable the Adventure Summary feature in the Edit Adventure menu.  This will display a message whenever the summary updates, so you can see how badly the AI got it.
 
 ## Installation 2: Install Harder
 If you want to tweak the scripts, customize the build, or what not, you'll need to do a few additional things.

@@ -133,6 +133,17 @@ class EngineEntryForWorldInfo extends StateEngineEntry {
   }
 
   /**
+   * Checks if the given `type` matches this type of entry.  It is possible
+   * to receive `undefined` as `type`.
+   * 
+   * @param {string | undefined} type
+   * @returns {boolean}
+   */
+  static checkType(type) {
+    return type === this.forType;
+  }
+
+  /**
    * @param {AIDData} data
    * @param {Map<string, string[]>} issuesMap
    * @returns {Iterable<StateEngineEntry>}
@@ -141,7 +152,7 @@ class EngineEntryForWorldInfo extends StateEngineEntry {
     for (const info of data.worldEntries) {
       try {
         const type = exports.extractType(info);
-        if (!type || type !== this.forType) continue;
+        if (!this.checkType(type)) continue;
         yield new this(info);
       }
       catch(err) {

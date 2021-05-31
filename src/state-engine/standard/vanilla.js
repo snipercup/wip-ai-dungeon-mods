@@ -19,6 +19,17 @@ const { EngineEntryForWorldInfo, parsers } = require("../EngineEntryForWorldInfo
     get targetSources() { return tuple("history"); }
 
     /**
+     * A special type checker for this entry; an `undefined` type will be treated as
+     * a vanilla entry.
+     * 
+     * @param {string | undefined} type 
+     * @returns {boolean}
+     */
+    static checkType(type) {
+      return typeof type !== "string" || super.checkType(type);
+    }
+
+    /**
      * @param {WorldInfoEntry} worldInfo
      * @returns {Omit<StateEngineData, "entryId">}
      */

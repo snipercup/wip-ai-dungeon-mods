@@ -1,13 +1,5 @@
 # TODO
 
-## Total Recall
-A dynamic State Engine entry that back-references something in the history.  This
-is a feature of the vanilla context.  Might be cool to see what could be done with
-the concept.
-
-Would require enhancing State Engine with the ability to dynamically produce its
-text, rather than using the World Info exclusively.
-
 ## Forced Actions
 A system of automatically setting the `frontMemory` based on a system of cooldowns
 and keyword matching.  They essentially forcibly inject text in front of the

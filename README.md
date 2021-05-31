@@ -437,7 +437,14 @@ Adds the following State-Engine entry types:
 * `$State` - To describe important and changing state for any of these previous entries.
 
 ### Director
-Adds a single State0Engine entry type, `$Direction`, that dynamically injects its text into the Author's Note when it matches text in the action history.
+Adds a single State-Engine entry type, `$Direction`, that dynamically injects its text into the Author's Note when it matches text in the action history.
+
+### Total Recall
+Adds a single State-Engine entry type.  This entry type is dynamically generated and not generated from a world-info entry.  It re-implements the Memory Look-back feature of vanilla AI Dungeon, but uses the powers of the Stemming module to perform the lookup with a TF-IDF search.
+
+It basically works by searching the history from 50 to 150 actions into the past, and if the match is strong enough, it will associate implicitly.  The score of the match is influenced by how strongly it matches the latest action's text.
+
+It is actually fairly unlikely to trigger, as the recalled action must exceed a threshold based on how unique the latest action is in order to associate and then actually be selected for inclusion into the context.
 
 ### Context-Mode
 A system for providing different ways to assemble the context sent to the AI.  It does nothing on its own.

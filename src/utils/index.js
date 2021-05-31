@@ -587,6 +587,69 @@ exports.getText = exports.dew(() => {
   return impl;
 });
 
+/** Matches any string that appears to start with a new line. */
+const reNewLine = /^\s*?\n/;
+
+/**
+ * Given an array of things that `getText` accepts, it will locate the first
+ * item that starts with a newline at or before the `index` and yield items
+ * until it hits the next item that starts with a newline.
+ * 
+ * This is intended to group `HistoryEntry` with text where the AI (or the
+ * player through an edit) continued the previous entry so you (hopefully)
+ * get complete thoughts and paragraphs.
+ */
+exports.getContinuousText = exports.dew(() => {
+  /** @type {(index: number, historyArr: readonly any[]) => number} */
+  const findStart = (index, historyArr) => {
+    let start = index, curText = "";
+    while (start >= 0) {
+      curText = exports.getText(historyArr[start]);
+      if (reNewLine.test(curText)) return start;
+      start -= 1;
+    }
+    return 0;
+  };
+
+  /**
+   * @param {number} curIndex
+   * @param {readonly any[]} textableArr
+   * @returns {Iterable<any>}
+   */
+  const emitContinuousText = function*(curIndex, textableArr) {
+    if (curIndex >= textableArr.length) return;
+
+    // Just emit until we hit the next string starting with a newline.
+    let curText = "";
+    do {
+      yield textableArr[curIndex];
+      curIndex += 1;
+      curText = exports.getText(textableArr[curIndex]);
+    }
+    while (curIndex < textableArr.length && !reNewLine.test(curText));
+  };
+
+  /**
+   * @template {string | { text: string }} T
+   * @param {number} index
+   * @param {readonly T[]} textableArr
+   * @returns {{ start: number, elements: T[] }}
+   */
+  const getContinuousText = (index, textableArr) => {
+    // Locate the first entry at or before `index` that does not appear to be
+    // a continuation.  A newline is usually appended when it is not continuing.
+    const start = findStart(index, textableArr);
+    // Grab the elements from this point until the next elements that starts
+    // with a new line.
+    const elements = [...emitContinuousText(start, textableArr)];
+    // Build the output.  We'll pass `start` out so the caller can use it to
+    // avoid duplicating work.
+    return { start, elements };
+  };
+
+  return getContinuousText;
+});
+
 /**
  * Rolls a dice, D&D style.
  * 

@@ -5,6 +5,7 @@ const worldControl = require("./world-control");
 const stateEngine = require("./state-engine");
 const deepState = require("./deep-state");
 const director = require("./director");
+const totalRecall = require("./total-recall");
 const contextMode = require("./context-mode");
 const commonModes = require("./common-context-modes");
 const annotatedMode = require("./annotated-context-mode");
@@ -87,7 +88,8 @@ worldControl.addPlugin(pipeline);
 stateEngine.addPlugin(
   pipeline,
   deepState.stateModule,
-  director.stateModule
+  director.stateModule,
+  totalRecall.stateModule
 );
 
 contextMode.addPlugin(

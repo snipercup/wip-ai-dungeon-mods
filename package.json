@@ -4,7 +4,7 @@
   },
   "sideEffects": false,
   "dependencies": {
-    "aid-bundler": "git://github.com/TaleirOfDeynai/aid-bundler.git",
+    "aid-bundler": "1.3.1",
     "tiny-tfidf": "0.9.1",
     "lancaster-stemmer": "2.0.0",
     "stopwords": "0.0.9"

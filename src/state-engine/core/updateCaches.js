@@ -12,6 +12,7 @@ module.exports = (data) => {
   // And now, we construct the object for the turn cache.
   /** @type {StateDataCache} */
   const newCacheData = {
+    phase: data.phase,
     forContextMemory: [],
     forFrontMemory: null,
     forAuthorsNote: null,

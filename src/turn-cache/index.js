@@ -236,6 +236,31 @@ exports.forUpdate = (aidData, name, options) => {
 };
 
 /**
+ * Obtains a copy of the named cache at the given `actionCount`, for inspection.
+ * 
+ * Will return `undefined` if no data is available at that location.
+ * 
+ * @template {CachableType} T
+ * @param {import("aid-bundler/src/aidData").AIDData} aidData
+ * The current `AIDData`.
+ * @param {string} name
+ * The name of the cache to obtain.
+ * @param {number} actionCount
+ * The action to fetch from.
+ * @returns {T | undefined}
+ */
+exports.inspectAt = (aidData, name, actionCount) => {
+  /** @type {NamedCacheData<T>} */
+  const stateStorage = aidData.state.$$turnCache ?? {};
+  /** @type {TurnCacheData<T> | undefined} */
+  const localStorage = stateStorage[name];
+  if (!localStorage) return undefined;
+
+  const [, clone] = cloneFromStorage(localStorage, actionCount, false);
+  return clone;
+};
+
+/**
  * Destroys a cache, entirely.
  * 
  * @param {import("aid-bundler/src/aidData").AIDData} aidData

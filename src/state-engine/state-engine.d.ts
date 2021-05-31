@@ -184,6 +184,8 @@ interface StateEngineCacheData {
 }
 
 interface StateDataCache {
+  /** The phase this cache was recorded for. */
+  phase: AIDData["phase"];
   /** Entries for `state.memory.context` injection. */
   forContextMemory: StateEngineCacheData[];
   /** An entry for `state.memory.frontMemory` injection. */

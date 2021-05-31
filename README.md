@@ -408,10 +408,22 @@ Provides only two entry types:
 * A fall-back entry to support vanilla world-info.  It does nothing special, but still supports the keyword improvements and relations.
 
 Commands:
-* `/state-engine report` displays information about what world-info is in context after the last action and how well they scored.
-  * It does not mean that the world-info's text was presented to the AI; it will try to fit in as many entries as it can, but the space is very limited and some entries may have been dropped.
+* `/state-engine report` attempts to display information about what world-info was in context after the last player-initiated action.
+  * Regarding the input/output phases:
+    * A report from an input phase was sent to the AI as a result of your input.
+    * A report from an output phase was sent to the AI as a result of commanding the AI to continue without input.
+  * Regarding what the command will display when:
+    * If your last action was to submit new text, it will be from the input phase.
+    * If you continued, it will be from the output phase.
+    * If you did an undo, it gets complicated!  It will probably from the turn before the undo unless the latest entry is one of your inputs, in which case it will be the latest turn.
+    * For this reason, try to only trigger the command immediately after the AI has generated something.
+  * World-info listed may not have been presented to the AI; the system will try to fit in as many entries as it can, but the space is very limited and some entries may have been dropped.
   * Use the Script Diagnostics function (the brain icon) in the Scenario Scripts page of the Scenario Editor to view what was actually sent to the AI.
   * This is a debug command, but it can help you tune your world-info entries a bit.
+* `/state-engine report latest` is similar to `report`, but it will always be for the latest recorded action.
+  * The report generated will usually be from the output phase.
+  * Unless you have done an undo, in which case it's something from the past.
+  * Data for the output phase is generated in case you want to use the continue function, but it may not have been sent to the AI yet.
 * `/state-engine reset` wipes all the internal caches it maintains in the `state` object.
 
 ### Deep-State

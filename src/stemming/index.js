@@ -2,7 +2,7 @@
 
 const { Plugin } = require("aid-bundler");
 const { english: rootStopwords } = require("stopwords/english");
-const { Corpus } = require("tiny-tfidf");
+const { FilterableCorpus } = require("./FilterableCorpus");
 const { lancasterStemmer: stemmer } = require("lancaster-stemmer");
 const { shutUpTS, chain, memoize, iterPosition, tuple, iterReverse } = require("../utils");
 
@@ -40,6 +40,14 @@ exports.parseHistoryKey = (stemKey) => {
 };
 
 /**
+ * Determines if `stemKey` is a history key.
+ * 
+ * @param {string} stemKey 
+ * @returns {stemKey is Stemming.HistoryKey}
+ */
+exports.isHistoryKey = (stemKey) => exports.parseHistoryKey(stemKey) != null;
+
+/**
  * Attempts to get the world-info ID (a `string`) from the given `key`.
  * 
  * @param {string} stemKey 
@@ -49,6 +57,14 @@ exports.parseWorldInfoKey = (stemKey) => {
   const [, worldInfoId] = reWorldInfoKey.exec(stemKey) ?? [];
   return worldInfoId ? worldInfoId : undefined;
 };
+
+/**
+ * Determines if `stemKey` is a world-info key.
+ * 
+ * @param {string} stemKey 
+ * @returns {stemKey is Stemming.WorldInfoKey}
+ */
+exports.isWorldInfoKey = (stemKey) => exports.parseWorldInfoKey(stemKey) != null;
 
 /**
  * Applies the stemmer to the given text.
@@ -75,6 +91,9 @@ exports.stemText = (text) => {
 };
 
 /**
+ * Stems and generates a corpus of all useful entries available to the script.
+ * 
+ * Will include `AIDData.text` as a history document unless `forContext` is `true`.
  * 
  * @param {AIDData} data
  * @param {boolean} [forContext]
@@ -116,7 +135,7 @@ exports.compileEntries = (data, forContext = false) => {
     .value();
   
   const stemMap = new Map(compiledData);
-  const corpus = new Corpus([...stemMap.keys()], [...stemMap.values()], false);
+  const corpus = FilterableCorpus.fromMap(stemMap, { useDefaultStopwords: false });
 
   return { stemMap, corpus };
 };

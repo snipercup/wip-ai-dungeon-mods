@@ -11,7 +11,9 @@ const $$stemText = Symbol("Querying.stemText");
  * @param {TKlass} Klass
  */
 exports.makeQuerying = (data, Klass) => {
-  const { stemText, getStemmingData, parseHistoryKey, parseWorldInfoKey } = require("./index");
+  const stemming = require("./index");
+  const { isHistoryKey, isWorldInfoKey } = stemming;
+  const { parseHistoryKey, parseWorldInfoKey } = stemming;
 
   // @ts-ignore - TS is stupid with mixins right now.
   return class extends Klass {
@@ -31,12 +33,12 @@ exports.makeQuerying = (data, Klass) => {
 
     /** The compiled corpus of texts used for TF-IDF querying. */
     get corpus() {
-      return getStemmingData(data).corpus;
+      return stemming.getStemmingData(data).corpus;
     }
 
     /** A map of document keys to the stemmed version of their text. */
     get stemMap() {
-      return getStemmingData(data).stemMap;
+      return stemming.getStemmingData(data).stemMap;
     }
 
     /**
@@ -49,7 +51,7 @@ exports.makeQuerying = (data, Klass) => {
       const { [$$stemText]: storedText } = this;
       if (typeof storedText === "string") return storedText;
       if (!this.text.trim()) return "";
-      const result = stemText(this.text);
+      const result = stemming.stemText(this.text);
       this[$$stemText] = result;
       return result;
     }
@@ -60,7 +62,6 @@ exports.makeQuerying = (data, Klass) => {
      * @returns {Array<[Stemming.AnyKey, number]>}
      */
     queryOnAll() {
-      // Sanity check to prevent an error.  Only query if this entry has terms.
       if (!this.stemText) return [];
       return shutUpTS(this.corpus.getResultsForQuery(this.stemText));
     }
@@ -68,29 +69,31 @@ exports.makeQuerying = (data, Klass) => {
     /**
      * Locates history entries that appear to be similar to this entry's text.
      * 
-     * @returns {Iterable<[source: number, score: number]>}
+     * @returns {Array<[source: number, score: number]>}
      */
-    *queryOnHistory() {
-      for (const [doc, score] of this.queryOnAll()) {
-        const source = parseHistoryKey(doc);
-        if (source == null) continue;
-
-        yield tuple(source, score);
-      }
+    queryOnHistory() {
+      if (!this.stemText) return [];
+      return this.corpus.filteredQuery(this.stemText, isHistoryKey)
+        .map(([stemKey, score]) => {
+          /** @type {number} */
+          const source = shutUpTS(parseHistoryKey(stemKey));
+          return tuple(source, score);
+        });
     }
 
     /**
      * Locates other world-info entries that appear to be similar to this entry's text.
      * 
-     * @returns {Iterable<[worldInfoId: string, score: number]>}
+     * @returns {Array<[worldInfoId: string, score: number]>}
      */
-    *queryOnWorldInfo() {
-      for (const [doc, score] of this.queryOnAll()) {
-        const worldInfoId = parseWorldInfoKey(doc);
-        if (worldInfoId == null) continue;
-
-        yield tuple(worldInfoId, score);
-      }
+    queryOnWorldInfo() {
+      if (!this.stemText) return [];
+      return this.corpus.filteredQuery(this.stemText, isWorldInfoKey)
+        .map(([stemKey, score]) => {
+          /** @type {string} */
+          const worldInfoId = shutUpTS(parseWorldInfoKey(stemKey));
+          return tuple(worldInfoId, score);
+        });
     }
 
   };

@@ -7,7 +7,7 @@ namespace Stemming {
 
   interface Storage {
     stemMap: Map<AnyKey, string>;
-    corpus: import("tiny-tfidf").Corpus;
+    corpus: import("./FilterableCorpus").FilterableCorpus;
   }
 
   interface EntryWithStemKey {

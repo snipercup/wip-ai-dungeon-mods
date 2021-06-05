@@ -40,12 +40,6 @@ const init = (data) => {
     static get forType() { return "Direction"; }
     get targetSources() { return tuple("authorsNote", "history"); }
 
-    get hasMatchers() {
-      if (this.keywords.length > 0) return true;
-      if (this.relations.length > 0) return true;
-      return false;
-    }
-
     validator() {
       const issues = super.validator();
       if (this.keys.size > 1)

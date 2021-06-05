@@ -36,12 +36,7 @@ const npcImplicitInclusionDiceSides = 20;
 const init = (data) => {
   const { EngineEntryForWorldInfo } = require("../state-engine/EngineEntryForWorldInfo");
   const { makeComparable } = require("../stemming/ComparableEntryMixin");
-  const { isExclusiveKeyword, isInclusiveKeyword, isRelationOfType } = require("../state-engine/StateEngineEntry");
-
-  /** @type {(relDef: AnyRelationDef) => boolean} */
-  const isNegatedRelation = (relDef) => isRelationOfType(relDef, "negated");
-  /** @type {(relDef: AnyRelationDef) => boolean} */
-  const isInclusiveRelation = (relDef) => !isNegatedRelation(relDef);
+  const { isExclusiveKeyword, isNegatedRelation } = require("../state-engine/StateEngineEntry");
 
   const { info } = data;
 
@@ -236,8 +231,7 @@ const init = (data) => {
      */
     modifier(allStates) {
       if (this.keys.size === 0) return;
-      if (this.keywords.some(isInclusiveKeyword)) return;
-      if (this.relations.some(isInclusiveRelation)) return;
+      if (this.hasInclusiveMatchers) return;
 
       // If a `Lore` has the same `keys` as another entry of the same type,
       // and this entry lacks inclusive matchers, but the other does not, we'll
@@ -282,11 +276,14 @@ const init = (data) => {
      * Whether this entry's relations were satisfied for this source.
      */
      checkRelations(matcher, params) {
-      if (this.keywords.length) return super.checkRelations(matcher, params);
+      if (this.hasInclusiveKeywords) return super.checkRelations(matcher, params);
       if (!isParamsFor("history", params)) return false;
       const { source, usedKeys } = params;
 
+      // For naked `$Lore` entries, totally lacking matchers, we'll just throw them in.
       if (this.relations.length === 0) return true;
+
+      // Otherwise, limit the search for relations.
       const result = this.relator.check(usedKeys, source, source + 1);
       if (result === false) return false;
       this.relationCounts.set(source, result);

@@ -19,6 +19,10 @@ exports.isKeyword = (value) => exports.isInclusiveKeyword(value) || exports.isEx
 exports.isRelation = (value) => "type" in value && relationTypes.has(value.type);
 /** @type {<TType extends RelationTypes>(value: AnyMatcherDef, type: TType) => value is RelationDef<TType>} */
 exports.isRelationOfType = (value, type) => hasTypeOf(value, type);
+/** @type {(value: AnyMatcherDef) => value is RelationDef<"negated">} */
+exports.isNegatedRelation = (value) => exports.isRelationOfType(value, "negated");
+/** @type {(value: AnyMatcherDef) => value is RelationDef<Exclude<RelationTypes, "negated">>} */
+exports.isInclusiveRelation = (value) => !exports.isNegatedRelation(value);
 
 const reExactMatch = /^"([\w ]+)"$/;
 const reInclusiveKeyword = /^\+?(["\w ]+)$/;
@@ -244,6 +248,36 @@ class StateEngineEntry {
     // Update the relator with the new relations.
     const { RelatableEntry, nilRelatableEntry } = require("./RelatableEntry");
     this.relator = value.length === 0 ? nilRelatableEntry : new RelatableEntry(this.relations);
+  }
+
+  /**
+   * Whether this entry has inclusive keywords.
+   */
+  get hasInclusiveKeywords() {
+    return this.keywords.some(exports.isInclusiveKeyword);
+  }
+
+  /**
+   * Whether this entry has inclusive relations.
+   */
+  get hasInclusiveRelations() {
+    return this.relations.some(exports.isInclusiveRelation);
+  }
+
+  /**
+   * Whether this entry has inclusive matchers of any sort.
+   */
+  get hasInclusiveMatchers() {
+    return this.hasInclusiveKeywords || this.hasInclusiveRelations;
+  }
+
+  /**
+   * Whether this entry has matchers of any sort.
+   */
+  get hasMatchers() {
+    if (this.keywords.length > 0) return true;
+    if (this.relations.length > 0) return true;
+    return false;
   }
 
   /**

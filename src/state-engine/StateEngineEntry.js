@@ -23,7 +23,7 @@ exports.isRelationOfType = (value, type) => hasTypeOf(value, type);
 const reExactMatch = /^"([\w ]+)"$/;
 const reInclusiveKeyword = /^\+?(["\w ]+)$/;
 const reExclusiveKeyword = /^-(["\w ]+)$/;
-const reRelation = /^([:!?@])([\w]+)$/;
+const reRelation = /^([:!?@])([\w ]+)$/;
 
 /** Common parsers for parsing state entry definitions. */
 exports.parsers = {

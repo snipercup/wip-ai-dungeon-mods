@@ -4,7 +4,7 @@ const { StateEngineEntry, BadStateEntryError, InvalidTypeError } = require("./St
 const { isRelation, parsers: baseParsers } = require("./StateEngineEntry");
 
 const reInfoEntry = /^\$(\w+?)((?:\[|\().*)?$/;
-const reInfoDeclaration = /^(?:\[(.*?)\])?(\(.+?\))?$/;
+const reInfoDeclaration = /^(?:\[([\w &]*?)\])?(\(.+?\))?$/;
 const reInfoKeywords = /^\((.*)?\)$/;
 
 exports.parsers = {
@@ -12,10 +12,10 @@ exports.parsers = {
   /**
    * Parses an info entry into its type and the info declaration:
    * - "$Location" => `["Location", undefined]`
-   * - "$Player[Ike]" => `["Player", "[Ike]"]`
-   * - "$Lore[Temple]" => `["Lore", "[Temple]"]`
-   * - "$Lore[Temple: Ike & Marth]" => `["Lore", "[Temple: Ike & Marth]"]`
-   * - "$Lore[Temple](temple; ancient)" => `["Lore", "[Temple](temple; ancient)"]`
+   * - "$Player[Ike & Hero]" => `["Player", "[Ike & Hero]"]`
+   * - "$Lore[Ancient Temple]" => `["Lore", "[Ancient Temple]"]`
+   * - "$Lore[Ancient Temple & Ike]" => `["Lore", "[Ancient Temple & Ike]"]`
+   * - "$Lore[Ancient Temple](temple; ancient)" => `["Lore", "[Ancient Temple](temple; ancient)"]`
    * - "$State(weapon; sword)" => `["State", "(weapon; sword)"]`
    * 
    * @type {PatternMatcher<[type: string, decPart: string | undefined]>}
@@ -33,8 +33,8 @@ exports.parsers = {
    * - "[]" => `[[], undefined]`
    * - "[Ike]" => `[["Ike"], undefined]`
    * - "[Ike & Hero]" => `[["Ike", "Hero"], undefined]`
-   * - "[GoddessHall](:Temple; goddess)" => `[["GoddessHall"], "(:Temple; goddess)"]`
-   * - "(:Temple; goddess)" => `[[], "(:Temple; goddess)"]`
+   * - "[Goddess Hall](:Ancient Temple; goddess)" => `[["Goddess Hall"], "(:Ancient Temple; goddess)"]`
+   * - "(:Ancient Temple; goddess)" => `[[], "(:Ancient Temple; goddess)"]`
    * 
    * @type {PatternMatcher<[keys: string[], matchersPart: string | undefined]>}
    */

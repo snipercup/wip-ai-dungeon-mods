@@ -45,7 +45,7 @@ There are three parts to a typed entry, the "type", the "tags" and the "matchers
 In this example:
 * The `$Player` portion identifies the type of entry, a "Player" entry.  These are case-sensitive.
 * The `[Taleir & Fox & Female]` portion are the tags, separated by `&`.
-  * They cannot currently contain spaces and are case-sensitive.
+  * May contain spaces and are case-sensitive.
   * It is generally a good idea to capitalize the first letter to make it more obvious its a tag.
   * Tags can be thought of bringing a named concept into context.
     * In the example, if this entry were associated with any text, the concepts of the character Taleir, the vulpine race, and the female sex would be brought into context.
@@ -102,7 +102,9 @@ It has the following rules:
 * It requires at least one tag.
 * It supports keyword matchers.
 * It does not support relation matchers.
-* The first tag in the list will also be used as a keyword automatically, so you can get away with only `$Player[Taleir]` and it will automatically infer an exact-match keyword of `"taleir"`.
+* The first tag in the list will also be used as a keyword automatically, so you can get away with only `$Player[Taleir & Fox]` and it will automatically infer an exact-match keyword of `"taleir"`.
+  * If the first tag has multiple words, like in `$Player[Jade Curtiss]`, the keyword will use the full name, basically being treated as, `$Player[Jade Curtiss]("jade curtiss")`.
+  * In this case, you may want to add additional keywords for the character's individual names: `$Player[Jade Curtiss]("Jade"; "Curtiss")`
 * Supports multi-player.  Multi-player mode is enabled if there is more than one named player.
   * Multi-player mode causes `$Player` entries to need to be associated with action text in order to be included.
   * In single-player mode, the entry is always associated implicitly.
@@ -119,6 +121,7 @@ It has the following rules:
 * It supports keyword matchers.
 * It does not support relation matchers.
 * The first tag in the list will also be used as a keyword automatically, so you can get away with only `$NPC[Riff & Otter]` and it will automatically infer an exact-match keyword of `"riff"`.
+  * See the `$Player` entry's rules for a little more information on how multi-word tags are handled; they work the same way here.
 * Each entry has a 1-in-20 chance of being included implicitly to remind the AI of their existence.  If multiple entries are selected in this way, only one will be included implicitly.
 * However, they can still also match through action text.
 

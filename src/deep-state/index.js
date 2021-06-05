@@ -5,7 +5,7 @@ const { isParamsFor } = require("../state-engine/utils");
 
 // Configuration.
 /** NPC may be implicitly included based on chance. */
-const npcImplicitInclusionDiceSides = 20;
+const implicitInclusionDiceSides = 20;
 
 /**
  * Deep State Module
@@ -154,7 +154,54 @@ const init = (data) => {
      * @returns {boolean}
      */
     associator(matcher, params) {
-      const diceSize = npcImplicitInclusionDiceSides;
+      const diceSize = implicitInclusionDiceSides;
+      // Has a chance of being implicitly included.
+      if (isParamsFor("implicit", params)) return rollDice(1, diceSize) === diceSize;
+      // Otherwise, use the default associator from here on.
+      return super.associator(matcher, params);
+    }
+
+    /**
+     * @param {MatchableEntry} matcher
+     * @param {AssociationSourcesFor<this>} source
+     * @param {StateEngineEntry | HistoryEntry | string} entry
+     * @returns {number}
+     */
+    valuator(matcher, source, entry) {
+      // Give a flat score if it only won the dice roll.
+      if (source === "implicit") return 25;
+      // Give these entries a boost if they're referenced in the text.
+      return super.valuator(matcher, source, entry, 4);
+    }
+  }
+
+  class LocationEntry extends EngineEntryForWorldInfo {
+    static get forType() { return "Location"; }
+    get targetSources() { return tuple("implicit", "history"); }
+    get priority() { return 80; }
+
+    validator() {
+      const issues = super.validator();
+      if (!this.keys.size)
+        issues.push(`World info entry \`${this.infoKey}\` must have at least one tag.`);
+      return issues;
+    }
+
+    modifier() {
+      // Add the location's name as a keyword.
+      addKeyAsKeyword(this);
+    }
+
+    /**
+     * Has a chance to implicitly include a location, as a means to "remind" the AI of
+     * its existence.
+     * 
+     * @param {MatchableEntry} matcher 
+     * @param {AssociationParamsFor<this>} params 
+     * @returns {boolean}
+     */
+    associator(matcher, params) {
+      const diceSize = implicitInclusionDiceSides;
       // Has a chance of being implicitly included.
       if (isParamsFor("implicit", params)) return rollDice(1, diceSize) === diceSize;
       // Otherwise, use the default associator from here on.
@@ -386,6 +433,7 @@ const init = (data) => {
 
   addStateEntry(PlayerEntry);
   addStateEntry(NpcEntry);
+  addStateEntry(LocationEntry);
   addStateEntry(SceneEntry);
   addStateEntry(LoreEntry);
   addStateEntry(StateEntry);

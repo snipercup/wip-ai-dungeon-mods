@@ -129,6 +129,26 @@ Example:
 > **`$NPC[Riff & Male & Otter](jeweler)`**
 > Riff is a male otter in Lelindar who owns and operates a jewelry store.
 
+### The `$Location` Entry
+Use this to provide information on locations within your world.
+
+It has the following rules:
+* It requires at least one tag.
+* It supports matchers of any type.
+* The first tag in the list will also be used as a keyword automatically, so you can get away with only `$Location[Lelindar]` and it will automatically infer an exact-match keyword of `"lelindar"`.
+  * See the `$Player` entry's rules for a little more information on how multi-word tags are handled; they work the same way here.
+* Each entry has a 1-in-20 chance of being included implicitly to remind the AI of their existence.  If multiple entries are selected in this way, only one will be included implicitly.
+* However, they can still also match through action text.
+
+Tips and tricks:
+* For locations within another location, is usually detrimental to relate the location to the parent/container it is in.  It is a bit uncommon for, say, a city's name to be mentioned to bring it into context so that a tavern within the city can satisfy that relation.
+* That said, the control is there when it is useful.
+
+Example:
+_Introducing a location.  The keywords suggest the scenario will focus on this one city._
+> **`$Location[Lelindar]("the city", "the city's")`**
+> Lelindar is a small city largely populated by humans.
+
 ### The `$Scene` Entry
 This entry has a very high selection bias.  It is always implicitly associated, which means only one such entry can match at a time.
 
@@ -156,11 +176,8 @@ This entry is intended to provide general, static information about the world.  
 
 Good usages include:
 * Providing additional background information or general goals for characters.
-* Providing information about locations in the world.
+* Providing additional background information about locations in the world.
 * Providing information on your world's races, monsters, starship types, etc.
-
-Tips and tricks:
-* For locations within a city, is usually detrimental to relate the location to the city it is in.  It is a bit uncommon for the city's name to be mentioned to bring it into context so that the location within the city can satisfy its relation.  Your milage may vary.
 
 It has the following rules:
 * Associates only with action text.
@@ -180,10 +197,6 @@ This allows you to define a single entry for something and then expand upon it a
 _Note: There is no error or validation message shown if a `$Lore` entry fails to find a compatible entry, at this time.  In this case, the entry will just never match anything._
 
 Examples:
-_Establishing a location in the world._
-> **`$Lore[Lelindar]("lelindar"; city)`**
-> Lelindar is a small city largely populated by humans.
-
 _Establishing a race in the world._
 > **`$Lore[Fox & BeastFolk](fox; vulpine; vixen)`**
 > Foxes are a sentient digitigrade people with the features of a fox.

@@ -357,6 +357,10 @@ class StateEngineEntry {
   associator(matcher, params) {
     // The default associator requires text to do any form of matching.
     if (!isParamsTextable(params)) return false;
+    // Player memory sources require inclusive keywords.
+    if (isParamsFor("playerMemory", params) && !this.hasInclusiveKeywords) return false;
+    // Implicit references require inclusive matchers of some form.
+    if (isParamsFor("implicitRef", params) && !this.hasInclusiveMatchers) return false;
 
     if (!this.checkKeywords(matcher, params)) return false;
     if (!this.checkRelations(matcher, params)) return false;
@@ -408,13 +412,42 @@ class StateEngineEntry {
    * Whether this entry's relations were satisfied for this source.
    */
   checkRelations(matcher, params) {
-    if (!isParamsFor("history", params)) return true;
-    const { source, usedKeys } = params;
+    if (isParamsFor("playerMemory", params)) {
+      // Entries with relations can never match the player memory, as it cannot have keys.
+      return !this.hasInclusiveRelations;
+    }
 
-    if (this.relations.length === 0) return true;
-    const result = this.relator.check(usedKeys, source);
-    if (result === false) return false;
-    this.relationCounts.set(source, result);
+    if (isParamsFor("implicitRef", params)) {
+      // If we have no inclusive matchers, we won't associate at all.
+      if (!this.hasInclusiveMatchers) return false;
+      // If we matched keywords, but have no relations to test, go ahead and associate.
+      if (this.hasInclusiveKeywords && this.relations.length === 0) return true;
+
+      // For implicit references, we'll check the entry's keys to see if the
+      // entry can satisfy the needed relations.
+      const { entry } = params;
+      const result = this.relator.checkKeys(entry.keys);
+      // Triggered a negation; no match.
+      if (result === false) return false;
+      // Avoided a negation, but no inclusive match; no match.
+      if (result === 0 && !this.hasInclusiveKeywords) return false;
+      // We don't track relation counts for implicit refs.
+      return true;
+    }
+
+    if (isParamsFor("history", params)) {
+      // No relations to match; default is success.
+      if (this.relations.length === 0) return true;
+
+      // For history sources, we'll use the `usedKeys` map to see if other entries
+      // have brought the needed keys into context.
+      const { source, usedKeys } = params;
+      const result = this.relator.check(usedKeys, source);
+      if (result === false) return false;
+      this.relationCounts.set(source, result);
+      return true;
+    }
+
     return true;
   }
 

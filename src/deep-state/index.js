@@ -259,7 +259,7 @@ const init = (data) => {
     }
 
     static get forType() { return "Lore"; }
-    get targetSources() { return tuple("history"); }
+    get targetSources() { return tuple("playerMemory", "implicitRef", "history"); }
 
     /**
      * Copies the matchers from another `Lore` entry when this entry lacks positive

@@ -64,7 +64,7 @@ State-Engine has a number of association sources that it supports.  These setup 
 Some entries may associate with multiple sources or just peek at them for information, but not actually create an association.
 
 Only these are currently in use:
-* Implicit association (referred to as `"implicit"` in the code) allows only one entry of each type.  For example, if multiple `$Location` entries are provided which can only associate implicitly, only **one** of those entries will be included in the context.
+* Implicit association (referred to as `"implicit"` in the code) allows only one entry of each type.  For example, if multiple `$Scene` entries are provided which can only associate implicitly, only **one** of those entries will be included in the context.
 * Action association (referred to as `"history"` or just a `number` in the code) allows any entry to associate if it matches the action's text.  Multiple entries can create an association, but a roulette based on how well they matched the text is run to select only **one** entry per action.
   * Actions are processed from oldest to latest actions.  This means that tags brought into context in a later action will not be available to entries that are looking for that tag from an earlier action.
 * Author's Note association (referred to as `"authorsNote"` in the code) will inject the entry's text as the Author's Note when it is selected.
@@ -129,7 +129,7 @@ Example:
 > **`$NPC[Riff & Male & Otter](jeweler)`**
 > Riff is a male otter in Lelindar who owns and operates a jewelry store.
 
-### The `$Location` Entry
+### The `$Scene` Entry
 This entry has a very high selection bias.  It is always implicitly associated, which means only one such entry can match at a time.
 
 Good usages include:
@@ -138,17 +138,17 @@ Good usages include:
 * Providing general, but important information about the world.
 
 It has the following rules:
-* Always implicitly associated; only one `$Location` entry will be selected for the context.
+* Always implicitly associated; only one `$Scene` entry will be selected for the context.
 * Does not support tags.
 * Does not support matchers of any sort.
 
 Examples:
 _Indicating the player's location._
-> **$Location**
+> **$Scene**
 > Taleir is currently in Lelindar's trading district.
 
 _Indicating important world information._
-> **$Location**
+> **$Scene**
 > Taleir lives in a world where magic exists, but is largely forgotten to the denizens on the surface.
 
 ### The `$Lore` Entry
@@ -202,7 +202,7 @@ State entries provide immediately important information about the world and its 
 Good usages include:
 * Providing information about what a character is carrying with them.
 * Providing the AI with stateful information, like what spells are currently influencing a character.
-* Updating the AI on the progress of goals for NPCs (for players, it's usually best to use the pinned memory or `$Location` entry).
+* Updating the AI on the progress of goals for NPCs (for players, it's usually best to use the pinned memory or `$Scene` entry).
 * When used carefully, you can also use this entry to pressure the story toward a specific state.
   * For instance, my test scenario started you in a city, but the scenario was intended to get you spelunking in some tunnels to battle the big-bad.  `$State` entries that detect when the city is mentioned sprinkled information about the tunnels so the AI would gravitate in that direction.
 
@@ -435,7 +435,7 @@ This is the bulk of what makes State-Engine work.  The entry types it provides h
 Adds the following State-Engine entry types:
 * `$Player` - To describe player characters.
 * `$NPC` - To describe other characters in your adventure.
-* `$Location` - To describe the player's current location or provide context to the world.
+* `$Scene` - To describe the current scene or provide context to the world.
 * `$Lore` - To describe your world in a general manner.
 * `$State` - To describe important and changing state for any of these previous entries.
 

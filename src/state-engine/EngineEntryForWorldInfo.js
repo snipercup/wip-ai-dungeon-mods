@@ -11,7 +11,7 @@ exports.parsers = {
   ...baseParsers,
   /**
    * Parses an info entry into its type and the info declaration:
-   * - "$Location" => `["Location", undefined]`
+   * - "$Scene" => `["Scene", undefined]`
    * - "$Player[Ike & Hero]" => `["Player", "[Ike & Hero]"]`
    * - "$Lore[Ancient Temple]" => `["Lore", "[Ancient Temple]"]`
    * - "$Lore[Ancient Temple & Ike]" => `["Lore", "[Ancient Temple & Ike]"]`

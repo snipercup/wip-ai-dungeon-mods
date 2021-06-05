@@ -19,7 +19,7 @@ const npcImplicitInclusionDiceSides = 20;
  * - `$NPC` - One of these entries may be selected to appear based on
  *   usages of their name in the history and other resources.  Even if there
  *   is no mention, it may appear just to remind the AI of their existence.
- * - `$Location` - A special entry that will always be included.
+ * - `$Scene` - A special entry that will always be included.
  * - `$Lore` - A low priority entry...
  * - `$State` - A high priority entry that may be included based
  *   on the results of a keyword search.
@@ -181,8 +181,8 @@ const init = (data) => {
     }
   }
 
-  class LocationEntry extends EngineEntryForWorldInfo {
-    static get forType() { return "Location"; }
+  class SceneEntry extends EngineEntryForWorldInfo {
+    static get forType() { return "Scene"; }
     get targetSources() { return tuple("implicit"); }
     get priority() { return 50; }
 
@@ -406,7 +406,7 @@ const init = (data) => {
 
   addStateEntry(PlayerEntry);
   addStateEntry(NpcEntry);
-  addStateEntry(LocationEntry);
+  addStateEntry(SceneEntry);
   addStateEntry(LoreEntry);
   addStateEntry(StateEntry);
 };

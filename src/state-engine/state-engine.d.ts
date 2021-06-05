@@ -39,7 +39,7 @@ interface StateEngineData {
    * The key of this entry.  Common types:
    * - `Player` - For a player's information; high-priority.
    * - `NPC` - For an NPC's information.
-   * - `Location` - For the current location of the scene; high-priority.
+   * - `Scene` - For important scene information; high-priority.
    * - `Lore` - For general knowledge of the world.
    * - `State` - For present knowledge of the world and its characters; high-priority.
    */

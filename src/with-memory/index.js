@@ -1,6 +1,6 @@
 /// <reference path="./with-memory.d.ts" />
 const { Plugin } = require("aid-bundler");
-const { SimpleCommand } = require("../commands");
+const { SimpleCommand, MatchCommand } = require("../commands");
 const turnCache = require("../turn-cache");
 
 /**
@@ -129,37 +129,48 @@ exports.outputModifier = (data) => {
 const isYes = ["on", "1", "true", "yes"];
 const isNo = ["off", "0", "false", "no"];
 
-exports.commands = [
-  new SimpleCommand("report-summary-updates", (data, [arg]) => {
-    if (!arg) {
-      const currentState = data.state.$$reportSummary ? "reporting" : "not reporting";
-      return `Currently ${currentState} summary updates.  Repeat the command with "on" or "off" to change.`
-    }
-    if (isYes.includes(arg.toLowerCase())) {
-      data.state.$$reportSummary = true;
-      return "Will report summary updates.";
-    }
-    if (isNo.includes(arg.toLowerCase())) {
-      data.state.$$reportSummary = false;
-      return "Will not report summary updates.";
-    }
-
-    return [
-      "Didn't understand; repeat the command.",
-      "Do you want me to report summary updates (on) or not (off)?"
-    ].join("\n");
-  }),
-  new SimpleCommand("report-summary", (data) => {
+/** @type {Array<PatternCommandEntry>} */
+const commandPatterns = [
+  [/^summary updates (?:true|on|1|yes)$/i, (data) => {
+    data.state.$$reportSummary = true;
+    return "Will report summary updates.";
+  }],
+  [/^summary updates (?:false|off|0|no)$/i, (data) => {
+    data.state.$$reportSummary = false;
+    return "Will not report summary updates.";
+  }],
+  ["summary updates", (data) => {
+    const currentState = data.state.$$reportSummary ? "reporting" : "not reporting";
+    return `Currently ${currentState} summary updates.  Repeat the command with "on" or "off" to change.`
+  }],
+  ["report summary", (data) => {
     /** @type {import("../turn-cache").ReadCache<string>} */
     const theCache = turnCache.forRead(data, "WithMemory.summary", { loose: true });
     if (theCache.storage) return `The story so far: ${theCache.storage}`;
     return "(No summary has yet been recorded yet.)";
-  }),
-  new SimpleCommand("reset-with-memory", (data) => {
+  }],
+  ["reset", (data) => {
     delete data.state.$$latestSummary;
     turnCache.clearCache(data, "WithMemory.summary");
     return "Cleared With-Memory caches.";
-  }),
+  }],
+  [null, () => {
+    return [
+      "Usage:",
+      "  summary updates - Informs you on whether or not summary changes will be reported.",
+      "  summary updates on - Enables summary update reporting.",
+      "  summary updates off - Disables summary update reporting.",
+      "  report summary - Reports the currently set summary.",
+      "  reset - Resets the internal caches; a debug command.",
+      "",
+      "Additionally, this plugin also provides an un-namespaced command:",
+      "  /set-authors-note [<text>] - Sets the author's note used by the script.  Omit \`text\` to unset it."
+    ].join("\n");
+  }]
+];
+
+exports.commands = [
+  new MatchCommand("with-memory", new Map(commandPatterns)),
   new SimpleCommand("set-authors-note", (data, args) => {
     const newNote = args.join(" ");
     if (!newNote) {

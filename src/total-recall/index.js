@@ -2,11 +2,7 @@
 const { Document } = require("tiny-tfidf");
 const { shutUpTS, tuple, chain, getContinuousText } = require("../utils");
 const { addStateEntry } = require("../state-engine/registry");
-
-/** How many actions must exist before we'll begin recalling. */
-const earliestActionForQuery = 50;
-/** How many entries after that we'll look through. */
-const queryCountLimit = 100;
+const { ConfigNamespace } = require("../config-commander/ConfigNamespace");
 
 /**
  * Does some global setup for this module.
@@ -17,6 +13,12 @@ const init = (data) => {
   const { StateEngineEntry } = require("../state-engine/StateEngineEntry");
   const { makeQuerying } = require("../stemming/QueryingEntryMixin");
   const { stemText, parseHistoryKey } = require("../stemming");
+
+  const config = ConfigNamespace.fetch(data, "total-recall", {
+    earliestActionForQuery: 50,
+    minimumEntriesRequired: 20,
+    queryCountLimit: 100
+  });
 
   /**
    * This entry looks for matches in the later half of the available action history
@@ -38,14 +40,47 @@ const init = (data) => {
     }
 
     /**
+     * How far back in the history we'll begin the search at.
+     */
+    static get earliestActionForQuery() {
+      return Math.max(0, config.get("integer", "earliestActionForQuery"));
+    }
+
+    /**
+     * The number of entries after `earliestActionForQuery` that need to exist
+     * before the system will try to find something in the history.  This is
+     * intended to try and have at least a little bit of history built up to
+     * search through.
+     */
+    static get minimumEntriesRequired() {
+      return Math.max(0, config.get("integer", "minimumEntriesRequired"));
+    }
+
+    /**
+     * How many entries after that we'll look through.
+     */
+    static get queryCountLimit() {
+      return Math.max(0, config.get("integer", "queryCountLimit"));
+    }
+
+    /**
      * @param {AIDData} data
      * @returns {Iterable<StateEngineEntry>}
      */
     static *produceEntries(data) {
+      const {
+        earliestActionForQuery,
+        minimumEntriesRequired,
+        queryCountLimit
+      } = this;
+
+      // Bail if this module is basically disabled.
+      if (queryCountLimit === 0) return;
+
       // Only produce an entry if we have enough action history for it
       // to be useful.  We'll throw in an extra 20 actions, just so we
       // have a few entries to work with.
-      const neededLength = earliestActionForQuery + 20;
+      const neededLength = earliestActionForQuery + minimumEntriesRequired;
       // How many history entries it provides seems to vary.  One adventure
       // gave me 100 while another gave 200.  Weird.
       if (data.history.length < neededLength) return;
@@ -87,6 +122,11 @@ const init = (data) => {
     }
 
     *fetchRelevantActionLines() {
+      const {
+        earliestActionForQuery,
+        queryCountLimit
+      } = RecallEntry;
+
       // Perform a query on history entries in the range we want to search.
       // These queries can take a while.  Only consider a limited amount.
       const limit = earliestActionForQuery + queryCountLimit;

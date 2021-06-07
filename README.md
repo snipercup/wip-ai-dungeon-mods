@@ -462,6 +462,11 @@ It basically works by searching the history from 50 to 150 actions into the past
 
 It is actually fairly unlikely to trigger, as the recalled action must exceed a threshold based on how unique the latest action is in order to associate and then actually be selected for inclusion into the context.
 
+Configuration Options:
+* `total-recall.earliestActionForQuery` as `integer` default `50` - How many actions ago an action must have been made to become recallable.  Nothing more recent than this can be recalled.
+* `total-recall.minimumEntriesRequired` as `integer` default `20` - How many actions after `earliestActionForQuery` must exist before the system will try to find something in the history.  This is intended to try and have at least a little bit of history built up to search through.
+* `total-recall.queryCountLimit` as `integer` default `100` - The maximum number of entries after `earliestActionForQuery` the system will search for relevant text.  Setting this value too high may cause the script to bust the 500ms run time limit.  Set this to `0` to disable Total-Recall entirely.
+
 ### Context-Mode
 A system for providing different ways to assemble the context sent to the AI.  It does nothing on its own.
 

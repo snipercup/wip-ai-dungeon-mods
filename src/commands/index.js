@@ -1,6 +1,6 @@
 /// <reference path="./commands.d.ts" />
-const { dew, escapeRegExp } = require("../utils");
 const { Command } = require("aid-bundler");
+const { dew, escapeRegExp } = require("../utils");
 
 /**
  * A simple command that allows you to return a string, which is set as the message.

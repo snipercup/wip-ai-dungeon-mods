@@ -18,6 +18,7 @@ exports.makeModifier = (modifierKey) => (data) => {
   const theModule = registeredModules.get(state.$$contextMode || "vanilla");
   theModule?.[modifierKey]?.(data);
 };
+
 /** @type {Array<PatternCommandEntry>} */
 const commandPatterns = [
   [/^set .*$/, (data, args) => {

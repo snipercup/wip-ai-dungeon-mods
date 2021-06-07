@@ -21,8 +21,8 @@ const { isInclusiveKeyword, isExclusiveKeyword } = require("./StateEngineEntry")
  * @returns {string}
  */
 const keywordPattern = (kw, exactMatch = false) => {
-  if (!exactMatch) return `(?:\\b|^)${escapeRegExp(kw.trim())}`;
-  return `(?:\\b|^)${escapeRegExp(kw.trim())}(?:\\b|$)`
+  if (!exactMatch) return `(?:\\b)${escapeRegExp(kw.trim())}`;
+  return `(?:\\b)${escapeRegExp(kw.trim())}(?:\\b)`
 };
 
 /**

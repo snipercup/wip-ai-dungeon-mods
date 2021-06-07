@@ -560,6 +560,19 @@ exports.sumLength = (acc, str) => {
 };
 
 /**
+ * Gets the text body of a World-Info entry, now that it can be defined
+ * in two different properties because Latitude are hopeless fuck-ups.
+ * 
+ * @param {WorldInfoEntry} wiEntry
+ * @returns {string}
+ */
+exports.getEntryText = (wiEntry) => {
+  if (wiEntry.description) return wiEntry.description;
+  if (wiEntry.entry) return wiEntry.entry;
+  return "";
+};
+
+/**
  * Function that gets text from an object.
  * - If `item` has a `text` property that is a string, it returns that.
  * - If `item` is itself a string, it returns that.

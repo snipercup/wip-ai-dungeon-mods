@@ -4,7 +4,7 @@ const { Plugin } = require("aid-bundler");
 const { english: rootStopwords } = require("stopwords/english");
 const { FilterableCorpus } = require("./FilterableCorpus");
 const { lancasterStemmer: stemmer } = require("lancaster-stemmer");
-const { shutUpTS, chain, memoize, iterPosition, tuple, iterReverse } = require("../utils");
+const { shutUpTS, chain, memoize, iterPosition, tuple, iterReverse, getEntryText } = require("../utils");
 
 const exSpecialApostrophe = /'(?:s|ll|d|ve|re)(?=\b|$)/g;
 const exRestApostrophe = /(\w)'(\w)/g;
@@ -116,7 +116,7 @@ exports.compileEntries = (data, forContext = false) => {
 
   /** @type {Iterable<[Stemming.WorldInfoKey, string]>} */
   const allWorldInfo = shutUpTS(
-    worldEntries.map((wi) => tuple(`WorldInfo(${wi.id})`, wi.entry))
+    worldEntries.map((wi) => tuple(`WorldInfo(${wi.id})`, getEntryText(wi)))
   );
 
   const otherSources = [

@@ -1,4 +1,4 @@
-const { chain, partition, fromPairs, tuple } = require("../utils");
+const { chain, partition, fromPairs, tuple, getEntryText } = require("../utils");
 const { worldInfoString } = require("./utils");
 const { StateEngineEntry, BadStateEntryError, InvalidTypeError } = require("./StateEngineEntry");
 const { isRelation, parsers: baseParsers } = require("./StateEngineEntry");
@@ -192,7 +192,7 @@ class EngineEntryForWorldInfo extends StateEngineEntry {
    * @type {string}
    */
    get text() {
-    return this.worldInfo.entry;
+    return getEntryText(this.worldInfo);
   }
 
   /**

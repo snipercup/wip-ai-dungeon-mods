@@ -1,5 +1,6 @@
 /// <reference path="./world-control.d.ts" />
 const { Plugin } = require("aid-bundler");
+const { getEntryText } = require("../utils");
 const { MatchCommand } = require("../commands");
 
 /**
@@ -49,7 +50,7 @@ const updateAtIndex = (data, index, hidden) => {
   if (!worldInfo) return false;
   if (worldInfo.hidden === hidden) return false;
   // The argument expects the inverse.
-  updateWorldEntry(index, worldInfo.keys, worldInfo.entry, hidden);
+  updateWorldEntry(index, worldInfo.keys, getEntryText(worldInfo), hidden);
   return true;
 };
 

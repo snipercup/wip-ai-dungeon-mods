@@ -1,5 +1,6 @@
 /// <reference path="../state-engine/state-engine.d.ts" />
-const { dew, chain, toPairs, fromPairs, tuple2, iterReverse } = require("../utils");
+const { dew, toPairs, fromPairs, tuple2, getEntryText } = require("../utils");
+const { chain, iterReverse } = require("../utils");
 const turnCache = require("../turn-cache");
 
 /**
@@ -62,7 +63,7 @@ exports.getStateEngineData = (aidData, assocData) => {
     // Try and pull up a world-info from the ID.
     if (stateData.forWorldInfo !== true) return undefined;
     const worldInfo = aidData.worldEntries.find((wi) => wi.id === assocData.entryId);
-    if (worldInfo) return worldInfo.entry.trim();
+    if (worldInfo) return getEntryText(worldInfo).trim();
     return undefined;
   })
 

@@ -22,7 +22,7 @@ declare interface WorldInfoEntry {
   keys: string;
   genre: string | null;
   attributes: unknown;
-  entry: string;
+  entry: string | null;
   description: string | null;
   favorite: boolean;
   tags: string[];

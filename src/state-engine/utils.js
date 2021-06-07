@@ -1,3 +1,5 @@
+const { getEntryText } = require("../utils");
+
 /**
  * Due to retarded limits in TypeScript, you can't use obvious type-guards
  * to differentiate `AssociationParams` from each other.  Apparently, `"implicit"`
@@ -51,7 +53,7 @@ exports.worldInfoString = (worldInfo, withExcerpt = false) => {
   const result = `WorldInfo#${worldInfo.id}<${worldInfo.keys}>`;
   if (!withExcerpt) return result;
 
-  return `${result}\n\t${exports.makeExcerpt(worldInfo.entry)}`;
+  return `${result}\n\t${exports.makeExcerpt(getEntryText(worldInfo))}`;
 }
 
 /**

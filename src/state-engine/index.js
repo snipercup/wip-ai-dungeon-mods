@@ -2,7 +2,7 @@
 /// <reference path="../commands/commands.d.ts" />
 const { Plugin } = require("aid-bundler");
 const { MatchCommand } = require("../commands");
-const { flatMap, iterReverse, chain, toPairs, fromPairs, tuple2 } = require("../utils");
+const { flatMap, iterReverse, chain, toPairs, fromPairs, tuple2, getEntryText } = require("../utils");
 const { makeExcerpt, stateDataString } = require("./utils");
 const { stateModule: coreModule } = require("./core");
 const { stateModule: vanillaModule } = require("./standard/vanilla");
@@ -48,8 +48,8 @@ const reportOnEntry = function* (worldInfoMap, stateDataCache, entries) {
     if (!data) continue;
     /** @type {WorldInfoEntry | undefined} */
     const info = worldInfoMap[entry.entryId];
-    const { type, entryId, relations, keys, text } = data;
-    const textForExcerpt = text ?? info?.entry ?? "";
+    const { type, entryId, keys, text } = data;
+    const textForExcerpt = text ?? (info ? getEntryText(info) : "");
     const ident = stateDataString({ type, entryId, keys });
     const score = entry.score.toFixed(2);
     const excerpt = textForExcerpt ? makeExcerpt(textForExcerpt) : "(No excerpt available.)";

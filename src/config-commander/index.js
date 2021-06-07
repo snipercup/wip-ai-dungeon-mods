@@ -1,7 +1,7 @@
 /// <reference path="./config-commander.d.ts" />
 /// <reference path="../state-engine/state-engine.d.ts" />
 const { Plugin } = require("aid-bundler");
-const { dew, chain } = require("../utils");
+const { dew, chain, getEntryText } = require("../utils");
 const { MatchCommand } = require("../commands");
 const { stateModule } = require("./state-module");
 const { ConfigNamespace } = require("./ConfigNamespace");
@@ -39,7 +39,7 @@ exports.contextModifier = (pipeline) => (aidData) => {
     /** @type {string[]} */
     const cmdMessages = [];
 
-    const commands = configEntry.entry
+    const commands = getEntryText(configEntry)
       .split("\n")
       .filter((line) => line.startsWith(pipeline.commandHandler.commandPrefix));
 

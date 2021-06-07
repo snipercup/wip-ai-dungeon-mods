@@ -114,7 +114,7 @@ const commandPatterns = [
     return `Hid ${found} out of ${indexStrs.length} entries.`;
   }],
   // Debug command; reports world-info entry to console for inspection.
-  [/^report \d+$/i, (data, [, index]) => {
+  [/^report (\d+)$/i, (data, [index]) => {
     const worldInfo = data.worldEntries[Number(index)];
     if (worldInfo) {
       console.log(worldInfo);

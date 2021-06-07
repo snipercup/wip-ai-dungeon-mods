@@ -59,8 +59,19 @@ class MatchCommand extends Command {
     const innerHandler = (data, args) => {
       const needle = args.join(" ");
       for (const [regex, handler] of patternMap) {
-        if (!regex.test(needle)) continue;
-        const message = handler(data, args);
+        const match = regex.exec(needle);
+        if (match == null) continue;
+
+        const message = dew(() => {
+          if (match.length === 1) {
+            // No capture groups; just pass `args`.
+            return handler(data, args);
+          }
+          // Yes capture groups; break the arguments out as they were matched.
+          const [, ...matchArgs] = match;
+          return handler(data, matchArgs);
+        });
+        
         data.message = message ? message : "";
         return;
       }

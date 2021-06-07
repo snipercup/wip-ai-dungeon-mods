@@ -21,11 +21,7 @@ exports.makeModifier = (modifierKey) => (data) => {
 
 /** @type {Array<PatternCommandEntry>} */
 const commandPatterns = [
-  [/^set .*$/, (data, args) => {
-    if (args.length !== 2)
-      return "The `set` sub-command expects only a one argument.";
-
-    const [, newMode] = args;
+  [/^set (.*)$/, (data, [newMode]) => {
     const fixedName = newMode.toLowerCase();
     if (fixedName !== "vanilla" && !registeredModules.has(fixedName)) {
       return [

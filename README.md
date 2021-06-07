@@ -484,6 +484,48 @@ A Context-Mode module named `annotated` that presents information to the AI with
 
 It probably works well in both second-person and third-person modes.
 
+### Config-Commander
+Provides a module configuration system as well as a means to do per-scenario configuration at the start of the game.
+
+#### Configuring a Scenario
+This module provides a system for running AID-Bundler commands using a world-info entry with `$Config` set as its key.  You can create one of these in your scenario to run commands to set up your scenario the way you want it.
+
+Each `$Config` entry only executes once.
+
+It masquerades as a State-Engine entry, however it intentionally does not interact with State-Engine.  It's just piggy-backing off the format for stylistic purposes.
+
+* In your scenario's World Info library, create an entry with the key `$Config`.
+  * You can have more than one, but the execution order is undefined.
+  * It's best to only create one so the commands execute in a predictable order.
+* In the "Entry" textbox, provide a command on each line, starting each with `/` just like you were executing them within the game.
+  * Any line that does not start with `/` will be treated as a comment.
+  * This also means you cannot spread commands across lines or anything like that.
+
+When your scenario starts, it will execute the list of commands during the first context phase.  If nothing goes wrong, you will just see the game go as normal.
+
+If a command could not be found, it will stop the AI and display a message listing the missing commands.
+
+You can see the messages produced by all the commands in the "Script Logs & Errors" report in the Scenario's scripting diagnostics.  It is possible that a command failed, but since AID-Bundler provides no success or failure feedback, there's not much that can be done at this time.
+
+Example:
+> **`$Config`**
+> /context-mode set narrator
+> /with-memory summary updates on
+
+#### Configuring Module Options
+Some modules may provide configurable options to tweak how they work using commands.  Naturally, these options can be configured using a `$Config` entry or just executed from the game itself.
+
+Refer to documentation for a module to see what configuration keys can be configured.
+
+Commands:
+* `/config <namespace>.<key> = <true|false>` - Sets a boolean value to the specified config.
+* `/config <namespace>.<key> = <number>` - Sets a numeric value to the specified config.  Uses `.` for decimals.
+* `/config <namespace>.<key> = <string>` - Sets a simple string value to the specified config.  Only letters, numbers, and underscore are allowed.
+* `/config <namespace>.<key> = "<string>"` - Sets a simple string value to the specified config.  Allows any character between the quotes, including internal double-quotes.  Only the first and last double-quote are important.
+* `/config <namespace>.<key>` - Reports the current value of a config.  If it is unset, the module is using the default value.
+* `/config reset <namespace>.<key>` - Resets a config value to defaults.
+* `/config list` - Lists all currently set configs.
+
 ### With-Memory
 Provides some player-memory enhancements.
 

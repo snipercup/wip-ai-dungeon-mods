@@ -24,9 +24,9 @@ exports.isNegatedRelation = (value) => exports.isRelationOfType(value, "negated"
 /** @type {(value: AnyMatcherDef) => value is RelationDef<Exclude<RelationTypes, "negated">>} */
 exports.isInclusiveRelation = (value) => !exports.isNegatedRelation(value);
 
-const reExactMatch = /^"([\w ]+)"$/;
-const reInclusiveKeyword = /^\+?(["\w ]+)$/;
-const reExclusiveKeyword = /^-(["\w ]+)$/;
+const reExactMatch = /^"(['\w ]+)"$/;
+const reInclusiveKeyword = /^\+?(["'\w ]+)$/;
+const reExclusiveKeyword = /^-(["'\w ]+)$/;
 const reRelation = /^([:!?@])([\w ]+)$/;
 
 /** Common parsers for parsing state entry definitions. */

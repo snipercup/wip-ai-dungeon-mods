@@ -180,7 +180,7 @@ Good usages include:
 * Providing information on your world's races, monsters, starship types, etc.
 
 It has the following rules:
-* Associates only with action text.
+* Associates with action text and with player memory.
 * Supports zero or more tags.
 * Supports zero or more matchers of any type.
   * It has a special ability regarding matchers.  See below.
